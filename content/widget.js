@@ -263,6 +263,19 @@
       </div>`;
     }
 
+    // Global Ripple Check
+    if (data.lastRippleCheck?.active) {
+      const r = data.lastRippleCheck;
+      const sevColors = { LOW: '#6e7681', MODERATE: '#d29922', HIGH: '#f85149', CRITICAL: '#da3633' };
+      const sevColor = sevColors[r.severity] || '#6e7681';
+      const typeLabel = (r.type || '').replace(/_/g, ' ');
+      const sectors = (r.connections || []).slice(0, 2).map(c => c.sector).join(', ');
+      html += `<div class="dr-ripple-mini" style="border-left:2px solid ${sevColor}">
+        <span style="font-size:8px;font-weight:800;color:${sevColor}">${r.severity}</span>
+        <span class="dr-event-text">${typeLabel}${sectors ? ' | ' + sectors : ''}</span>
+      </div>`;
+    }
+
     // Spread rows
     for (const [key, spread] of sorted) {
       const statusClass = spread.status || 'normal';
@@ -463,6 +476,17 @@
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
+      }
+
+      /* Ripple mini */
+      .dr-ripple-mini {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 8px;
+        background: #161b22;
+        border-radius: 4px;
+        margin-bottom: 6px;
       }
 
       /* Spread rows */

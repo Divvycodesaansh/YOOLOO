@@ -73,6 +73,7 @@ function renderAll(data) {
 
   renderTopBar(data);
   renderEvents(data.activeEvents);
+  renderRippleCheck(data.lastRippleCheck);
   renderSpreadTable(data.lastSpreads, data.spreadHistory);
   renderAnalog(data.lastAnalog);
   renderFadeStats(data.lastAnalog);
@@ -137,6 +138,58 @@ function renderEvents(events) {
 
     content.appendChild(div);
   });
+}
+
+// ─── Global Ripple Check ──────────────────────────────────────────────────────
+
+function renderRippleCheck(rippleData) {
+  const section = document.getElementById('rippleSection');
+  const content = document.getElementById('rippleContent');
+
+  if (!rippleData || !rippleData.active) {
+    section.classList.remove('hidden');
+    content.innerHTML = `
+      <div class="ripple-none">No active global ripple detected.</div>
+    `;
+    return;
+  }
+
+  section.classList.remove('hidden');
+
+  const r = rippleData;
+  const severity = r.severity || 'LOW';
+  const typeLabel = (r.type || '').replace(/_/g, ' ');
+
+  // Build connections HTML
+  let connectionsHtml = '';
+  if (r.connections && r.connections.length > 0) {
+    connectionsHtml = r.connections.map(c =>
+      `<span class="ripple-conn degree-${c.degree}">${c.degree} ${c.sector}</span>`
+    ).join('');
+  }
+
+  // Truncate event headline
+  const eventText = r.event ? truncateText(r.event, 80) : 'Global event detected';
+
+  content.innerHTML = `
+    <div class="ripple-card severity-${severity}">
+      <div class="ripple-header">
+        <span class="ripple-severity ${severity}">${severity}</span>
+        <span class="ripple-type">${typeLabel}</span>
+      </div>
+      <div class="ripple-event">${escapeHtml(eventText)}</div>
+      ${connectionsHtml ? `<div class="ripple-connections">${connectionsHtml}</div>` : ''}
+      <div class="ripple-impact">${escapeHtml(r.daily_life_impact || '')}</div>
+      <div class="ripple-watch">
+        <span class="ripple-watch-label">WATCH:</span> ${escapeHtml(r.watch || '')}
+      </div>
+    </div>
+  `;
+}
+
+function truncateText(str, maxLen) {
+  if (!str || str.length <= maxLen) return str || '';
+  return str.substring(0, maxLen) + '...';
 }
 
 // ─── Spread Table ─────────────────────────────────────────────────────────────

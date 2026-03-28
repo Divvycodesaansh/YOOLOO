@@ -27,7 +27,8 @@ const DEFAULT_SETTINGS = {
   widgetEnabled: true,
   widgetSites: WIDGET_SITES.map(s => s.id),
   darkMode: true,
-  refreshInterval: 60
+  refreshInterval: 60,
+  rippleEnabled: true
 };
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -83,6 +84,7 @@ function populateFields(settings) {
   document.getElementById('thresh-extreme').value = settings.zThresholds?.extreme ?? 3.0;
 
   document.getElementById('newsEnabled').checked = settings.newsEnabled !== false;
+  document.getElementById('rippleEnabled').checked = settings.rippleEnabled !== false;
   document.getElementById('soundEnabled').checked = settings.soundEnabled !== false;
   document.getElementById('widgetEnabled').checked = settings.widgetEnabled !== false;
   document.getElementById('darkMode').checked = settings.darkMode !== false;
@@ -122,6 +124,7 @@ async function saveSettings() {
       extreme: parseFloat(document.getElementById('thresh-extreme').value) || 3.0
     },
     newsEnabled: document.getElementById('newsEnabled').checked,
+    rippleEnabled: document.getElementById('rippleEnabled').checked,
     soundEnabled: document.getElementById('soundEnabled').checked,
     widgetEnabled: document.getElementById('widgetEnabled').checked,
     darkMode: document.getElementById('darkMode').checked,

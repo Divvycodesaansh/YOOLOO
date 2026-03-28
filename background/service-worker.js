@@ -3,6 +3,7 @@
 
 import { detectNews, getActiveEvents } from './news-detector.js';
 import { findBestAnalog } from './analog-matcher.js';
+import { analyzeGlobalRipple } from './ripple-analyzer.js';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -45,7 +46,8 @@ const DEFAULT_SETTINGS = {
   widgetEnabled: true,
   widgetSites: ['kite.zerodha.com', 'tradingview.com', 'moneycontrol.com'],
   darkMode: true,
-  refreshInterval: 60
+  refreshInterval: 60,
+  rippleEnabled: true
 };
 
 // ─── Alarm Setup ──────────────────────────────────────────────────────────────
@@ -455,6 +457,13 @@ async function fetchAndCalculate() {
     const activeEvents = await getActiveEvents();
     const analog = await findBestAnalog(spreadsWithZ, activeEvents);
 
+    // Global Ripple Check
+    const settings = await getSettings();
+    let rippleCheck = null;
+    if (settings.rippleEnabled !== false) {
+      rippleCheck = await analyzeGlobalRipple(spreadsWithZ);
+    }
+
     // Store everything
     const storeData = {
       lastSpreads: spreadsWithZ,
@@ -462,7 +471,8 @@ async function fetchAndCalculate() {
       marketStatus,
       alertCounts,
       overallStatus,
-      lastAnalog: analog
+      lastAnalog: analog,
+      lastRippleCheck: rippleCheck
     };
 
     await chrome.storage.local.set(storeData);
@@ -595,7 +605,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     chrome.storage.local.get([
       'lastSpreads', 'lastFetchTime', 'marketStatus',
       'alertCounts', 'overallStatus', 'lastAnalog',
-      'spreadHistory', 'activeEvents'
+      'spreadHistory', 'activeEvents', 'lastRippleCheck'
     ]).then(data => {
       sendResponse(data);
     });
