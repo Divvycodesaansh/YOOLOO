@@ -1,0 +1,6 @@
+/* Widget host element positioning — minimal styles since Shadow DOM handles the rest */
+#dr-radar-widget-host {
+  position: fixed !important;
+  z-index: 999999 !important;
+  pointer-events: auto !important;
+}

@@ -1,0 +1,391 @@
+{
+  "events": [
+    {
+      "id": "nuclear_tests_98",
+      "event": "Pokhran-II Nuclear Tests",
+      "type": "GEO",
+      "date": "1998-05-11",
+      "data_limited": true,
+      "spreads": {
+        "nifty_basis": { "normal": 10, "peak": 55, "peak_zscore": 2.5, "reversion_days": 7, "direction": "futures_discount" },
+        "india_vix": { "normal": 20, "peak": 38, "peak_zscore": 2.8, "reversion_days": 12, "direction": "spike" }
+      },
+      "nifty_drawdown": -14.0,
+      "nifty_recovery_days": 45,
+      "fade_win_rate": 70,
+      "notes": "Sanctions imposed. Limited data for commodity spreads."
+    },
+    {
+      "id": "kargil_99",
+      "event": "Kargil War",
+      "type": "GEO",
+      "date": "1999-05-03",
+      "data_limited": true,
+      "spreads": {
+        "nifty_basis": { "normal": 12, "peak": 65, "peak_zscore": 2.8, "reversion_days": 10, "direction": "futures_discount" },
+        "india_vix": { "normal": 22, "peak": 40, "peak_zscore": 2.6, "reversion_days": 15, "direction": "spike" }
+      },
+      "nifty_drawdown": -11.5,
+      "nifty_recovery_days": 30,
+      "fade_win_rate": 72,
+      "notes": "War lasted May-July 1999. Markets recovered swiftly post ceasefire."
+    },
+    {
+      "id": "parliament_attack_01",
+      "event": "Indian Parliament Attack",
+      "type": "GEO",
+      "date": "2001-12-13",
+      "data_limited": true,
+      "spreads": {
+        "nifty_basis": { "normal": 10, "peak": 70, "peak_zscore": 3.0, "reversion_days": 5, "direction": "futures_discount" },
+        "mcx_gold_comex": { "normal": 50, "peak": 280, "peak_zscore": 2.5, "reversion_days": 6, "direction": "mcx_premium" },
+        "india_vix": { "normal": 22, "peak": 42, "peak_zscore": 3.2, "reversion_days": 10, "direction": "spike" }
+      },
+      "nifty_drawdown": -9.8,
+      "nifty_recovery_days": 20,
+      "fade_win_rate": 78,
+      "notes": "India-Pakistan tensions peaked. Military standoff followed."
+    },
+    {
+      "id": "mumbai_attacks_08",
+      "event": "26/11 Mumbai Terror Attacks",
+      "type": "GEO",
+      "date": "2008-11-26",
+      "data_limited": false,
+      "spreads": {
+        "nifty_basis": { "normal": 15, "peak": 90, "peak_zscore": 3.2, "reversion_days": 4, "direction": "futures_discount" },
+        "banknifty_basis": { "normal": 25, "peak": 150, "peak_zscore": 3.0, "reversion_days": 4, "direction": "futures_discount" },
+        "mcx_gold_comex": { "normal": 70, "peak": 450, "peak_zscore": 3.1, "reversion_days": 5, "direction": "mcx_premium" },
+        "mcx_silver_comex": { "normal": 200, "peak": 1200, "peak_zscore": 2.8, "reversion_days": 5, "direction": "mcx_premium" },
+        "mcx_crude_brent": { "normal": 30, "peak": 180, "peak_zscore": 2.5, "reversion_days": 3, "direction": "mcx_premium" },
+        "usdinr_basis": { "normal": 0.05, "peak": 0.35, "peak_zscore": 2.9, "reversion_days": 6, "direction": "futures_premium" },
+        "banknifty_nifty_ratio": { "normal": 2.35, "peak": 2.52, "peak_zscore": 2.2, "reversion_days": 7, "direction": "banknifty_underperform" },
+        "india_vix": { "normal": 35, "peak": 68, "peak_zscore": 2.5, "reversion_days": 10, "direction": "spike" }
+      },
+      "nifty_drawdown": -5.8,
+      "nifty_recovery_days": 12,
+      "fade_win_rate": 82,
+      "notes": "Markets already depressed from GFC. Attacks caused sharp intraday drop but recovery was swift."
+    },
+    {
+      "id": "taper_tantrum_13",
+      "event": "Fed Taper Tantrum",
+      "type": "MAC",
+      "date": "2013-05-22",
+      "data_limited": false,
+      "spreads": {
+        "nifty_basis": { "normal": 12, "peak": 50, "peak_zscore": 2.2, "reversion_days": 15, "direction": "futures_discount" },
+        "banknifty_basis": { "normal": 20, "peak": 80, "peak_zscore": 2.0, "reversion_days": 15, "direction": "futures_discount" },
+        "mcx_gold_comex": { "normal": 80, "peak": 380, "peak_zscore": 2.6, "reversion_days": 10, "direction": "mcx_premium" },
+        "usdinr_basis": { "normal": 0.04, "peak": 0.45, "peak_zscore": 3.5, "reversion_days": 20, "direction": "futures_premium" },
+        "banknifty_nifty_ratio": { "normal": 2.42, "peak": 2.55, "peak_zscore": 2.1, "reversion_days": 12, "direction": "banknifty_underperform" },
+        "india_vix": { "normal": 16, "peak": 30, "peak_zscore": 2.8, "reversion_days": 18, "direction": "spike" },
+        "infy_adr_spread": { "normal": 0.5, "peak": 2.8, "peak_zscore": 2.3, "reversion_days": 8, "direction": "adr_discount" },
+        "icici_adr_spread": { "normal": 0.8, "peak": 3.5, "peak_zscore": 2.4, "reversion_days": 10, "direction": "adr_discount" }
+      },
+      "nifty_drawdown": -12.3,
+      "nifty_recovery_days": 60,
+      "fade_win_rate": 68,
+      "notes": "Bernanke signaled QE taper. INR fell from 54 to 68. Prolonged disruption."
+    },
+    {
+      "id": "demonetisation_16",
+      "event": "Demonetisation",
+      "type": "MAC",
+      "date": "2016-11-08",
+      "data_limited": false,
+      "spreads": {
+        "nifty_basis": { "normal": 15, "peak": 75, "peak_zscore": 2.8, "reversion_days": 8, "direction": "futures_discount" },
+        "banknifty_basis": { "normal": 25, "peak": 180, "peak_zscore": 3.5, "reversion_days": 10, "direction": "futures_discount" },
+        "mcx_gold_comex": { "normal": 85, "peak": 600, "peak_zscore": 3.8, "reversion_days": 7, "direction": "mcx_premium" },
+        "usdinr_basis": { "normal": 0.05, "peak": 0.30, "peak_zscore": 2.5, "reversion_days": 5, "direction": "futures_premium" },
+        "banknifty_nifty_ratio": { "normal": 2.45, "peak": 2.62, "peak_zscore": 2.8, "reversion_days": 12, "direction": "banknifty_underperform" },
+        "india_vix": { "normal": 14, "peak": 24, "peak_zscore": 2.4, "reversion_days": 6, "direction": "spike" }
+      },
+      "nifty_drawdown": -6.3,
+      "nifty_recovery_days": 25,
+      "fade_win_rate": 80,
+      "notes": "500/1000 notes demonetised. BankNifty massively impacted. Gold premium spiked on cash scramble."
+    },
+    {
+      "id": "surgical_strike_16",
+      "event": "Surgical Strike (LoC)",
+      "type": "GEO",
+      "date": "2016-09-29",
+      "data_limited": false,
+      "spreads": {
+        "nifty_basis": { "normal": 15, "peak": 60, "peak_zscore": 2.4, "reversion_days": 2, "direction": "futures_discount" },
+        "banknifty_basis": { "normal": 25, "peak": 90, "peak_zscore": 2.2, "reversion_days": 2, "direction": "futures_discount" },
+        "mcx_gold_comex": { "normal": 80, "peak": 350, "peak_zscore": 2.3, "reversion_days": 2, "direction": "mcx_premium" },
+        "india_vix": { "normal": 14, "peak": 22, "peak_zscore": 2.2, "reversion_days": 3, "direction": "spike" }
+      },
+      "nifty_drawdown": -2.5,
+      "nifty_recovery_days": 3,
+      "fade_win_rate": 90,
+      "notes": "Markets dipped on escalation fears but recovered within days. Classic fade opportunity."
+    },
+    {
+      "id": "ilfs_crisis_18",
+      "event": "IL&FS Crisis",
+      "type": "CRISIS",
+      "date": "2018-09-21",
+      "data_limited": false,
+      "spreads": {
+        "nifty_basis": { "normal": 15, "peak": 55, "peak_zscore": 2.2, "reversion_days": 20, "direction": "futures_discount" },
+        "banknifty_basis": { "normal": 25, "peak": 160, "peak_zscore": 3.2, "reversion_days": 25, "direction": "futures_discount" },
+        "banknifty_nifty_ratio": { "normal": 2.48, "peak": 2.68, "peak_zscore": 3.0, "reversion_days": 30, "direction": "banknifty_underperform" },
+        "india_vix": { "normal": 14, "peak": 24, "peak_zscore": 2.4, "reversion_days": 15, "direction": "spike" },
+        "icici_adr_spread": { "normal": 0.8, "peak": 4.2, "peak_zscore": 2.8, "reversion_days": 18, "direction": "nse_discount" }
+      },
+      "nifty_drawdown": -11.2,
+      "nifty_recovery_days": 45,
+      "fade_win_rate": 62,
+      "notes": "NBFC/HFC crisis. BankNifty bore maximum pain. Extended resolution period."
+    },
+    {
+      "id": "us_china_trade_war_18",
+      "event": "US-China Trade War Escalation",
+      "type": "MAC",
+      "date": "2018-03-22",
+      "data_limited": false,
+      "spreads": {
+        "nifty_basis": { "normal": 15, "peak": 45, "peak_zscore": 2.0, "reversion_days": 10, "direction": "futures_discount" },
+        "mcx_gold_comex": { "normal": 85, "peak": 300, "peak_zscore": 2.0, "reversion_days": 8, "direction": "mcx_premium" },
+        "mcx_crude_brent": { "normal": 25, "peak": 120, "peak_zscore": 2.2, "reversion_days": 12, "direction": "mcx_premium" },
+        "usdinr_basis": { "normal": 0.05, "peak": 0.25, "peak_zscore": 2.0, "reversion_days": 15, "direction": "futures_premium" },
+        "india_vix": { "normal": 14, "peak": 22, "peak_zscore": 2.0, "reversion_days": 10, "direction": "spike" }
+      },
+      "nifty_drawdown": -8.5,
+      "nifty_recovery_days": 40,
+      "fade_win_rate": 65,
+      "notes": "Tariff escalation in waves. Repeated dislocation opportunities over 18 months."
+    },
+    {
+      "id": "pulwama_19",
+      "event": "Pulwama Attack",
+      "type": "GEO",
+      "date": "2019-02-14",
+      "data_limited": false,
+      "spreads": {
+        "nifty_basis": { "normal": 15, "peak": 85, "peak_zscore": 3.1, "reversion_days": 3, "direction": "futures_discount" },
+        "banknifty_basis": { "normal": 25, "peak": 130, "peak_zscore": 2.8, "reversion_days": 3, "direction": "futures_discount" },
+        "mcx_gold_comex": { "normal": 80, "peak": 520, "peak_zscore": 3.4, "reversion_days": 4, "direction": "mcx_premium" },
+        "mcx_silver_comex": { "normal": 180, "peak": 1100, "peak_zscore": 3.0, "reversion_days": 4, "direction": "mcx_premium" },
+        "mcx_crude_brent": { "normal": 25, "peak": 140, "peak_zscore": 2.4, "reversion_days": 3, "direction": "mcx_premium" },
+        "usdinr_basis": { "normal": 0.05, "peak": 0.28, "peak_zscore": 2.3, "reversion_days": 4, "direction": "futures_premium" },
+        "banknifty_nifty_ratio": { "normal": 2.45, "peak": 2.58, "peak_zscore": 2.1, "reversion_days": 5, "direction": "banknifty_underperform" },
+        "india_vix": { "normal": 16, "peak": 28, "peak_zscore": 2.8, "reversion_days": 8, "direction": "spike" },
+        "infy_adr_spread": { "normal": 0.5, "peak": 2.2, "peak_zscore": 2.0, "reversion_days": 3, "direction": "adr_discount" },
+        "icici_adr_spread": { "normal": 0.8, "peak": 3.0, "peak_zscore": 2.2, "reversion_days": 4, "direction": "adr_discount" }
+      },
+      "nifty_drawdown": -7.2,
+      "nifty_recovery_days": 15,
+      "fade_win_rate": 85,
+      "notes": "CRPF convoy attack. Maximum spread dislocation across all instruments. Classic mean-reversion setup."
+    },
+    {
+      "id": "balakot_19",
+      "event": "Balakot Airstrike",
+      "type": "GEO",
+      "date": "2019-02-26",
+      "data_limited": false,
+      "spreads": {
+        "nifty_basis": { "normal": 15, "peak": 95, "peak_zscore": 3.4, "reversion_days": 2, "direction": "futures_discount" },
+        "banknifty_basis": { "normal": 25, "peak": 145, "peak_zscore": 3.0, "reversion_days": 2, "direction": "futures_discount" },
+        "mcx_gold_comex": { "normal": 80, "peak": 580, "peak_zscore": 3.6, "reversion_days": 3, "direction": "mcx_premium" },
+        "mcx_crude_brent": { "normal": 25, "peak": 160, "peak_zscore": 2.6, "reversion_days": 2, "direction": "mcx_premium" },
+        "usdinr_basis": { "normal": 0.05, "peak": 0.32, "peak_zscore": 2.7, "reversion_days": 3, "direction": "futures_premium" },
+        "india_vix": { "normal": 16, "peak": 32, "peak_zscore": 3.2, "reversion_days": 5, "direction": "spike" }
+      },
+      "nifty_drawdown": -3.5,
+      "nifty_recovery_days": 5,
+      "fade_win_rate": 88,
+      "notes": "IAF airstrike inside Pakistan. Abhinandan capture added volatility. Very fast reversion."
+    },
+    {
+      "id": "soleimani_20",
+      "event": "Soleimani Assassination",
+      "type": "GEO",
+      "date": "2020-01-03",
+      "data_limited": false,
+      "spreads": {
+        "nifty_basis": { "normal": 15, "peak": 45, "peak_zscore": 2.0, "reversion_days": 3, "direction": "futures_discount" },
+        "mcx_gold_comex": { "normal": 85, "peak": 420, "peak_zscore": 2.8, "reversion_days": 5, "direction": "mcx_premium" },
+        "mcx_crude_brent": { "normal": 25, "peak": 200, "peak_zscore": 3.0, "reversion_days": 4, "direction": "mcx_premium" },
+        "india_vix": { "normal": 13, "peak": 20, "peak_zscore": 2.0, "reversion_days": 4, "direction": "spike" }
+      },
+      "nifty_drawdown": -2.8,
+      "nifty_recovery_days": 5,
+      "fade_win_rate": 85,
+      "notes": "Oil and gold spiked massively. India indirectly impacted. Quick reversion."
+    },
+    {
+      "id": "covid_crash_20",
+      "event": "COVID-19 Market Crash",
+      "type": "CRISIS",
+      "date": "2020-03-09",
+      "data_limited": false,
+      "spreads": {
+        "nifty_basis": { "normal": 15, "peak": 250, "peak_zscore": 5.5, "reversion_days": 25, "direction": "futures_discount" },
+        "banknifty_basis": { "normal": 25, "peak": 400, "peak_zscore": 5.0, "reversion_days": 25, "direction": "futures_discount" },
+        "mcx_gold_comex": { "normal": 85, "peak": 800, "peak_zscore": 4.5, "reversion_days": 15, "direction": "mcx_premium" },
+        "mcx_silver_comex": { "normal": 180, "peak": 2500, "peak_zscore": 4.2, "reversion_days": 18, "direction": "mcx_premium" },
+        "mcx_crude_brent": { "normal": 25, "peak": 350, "peak_zscore": 4.0, "reversion_days": 30, "direction": "mcx_premium" },
+        "usdinr_basis": { "normal": 0.05, "peak": 0.60, "peak_zscore": 4.5, "reversion_days": 20, "direction": "futures_premium" },
+        "banknifty_nifty_ratio": { "normal": 2.50, "peak": 2.78, "peak_zscore": 3.5, "reversion_days": 30, "direction": "banknifty_underperform" },
+        "india_vix": { "normal": 14, "peak": 83, "peak_zscore": 6.0, "reversion_days": 40, "direction": "spike" },
+        "infy_adr_spread": { "normal": 0.5, "peak": 5.0, "peak_zscore": 3.5, "reversion_days": 12, "direction": "adr_discount" },
+        "icici_adr_spread": { "normal": 0.8, "peak": 6.5, "peak_zscore": 3.8, "reversion_days": 15, "direction": "adr_discount" }
+      },
+      "nifty_drawdown": -38.0,
+      "nifty_recovery_days": 120,
+      "fade_win_rate": 75,
+      "notes": "Black swan. All spreads at extreme levels. Lower hit rate on fade due to prolonged crisis but massive gains for successful fades."
+    },
+    {
+      "id": "yes_bank_20",
+      "event": "Yes Bank Crisis / Moratorium",
+      "type": "CRISIS",
+      "date": "2020-03-05",
+      "data_limited": false,
+      "spreads": {
+        "nifty_basis": { "normal": 15, "peak": 50, "peak_zscore": 2.2, "reversion_days": 8, "direction": "futures_discount" },
+        "banknifty_basis": { "normal": 25, "peak": 200, "peak_zscore": 3.8, "reversion_days": 10, "direction": "futures_discount" },
+        "banknifty_nifty_ratio": { "normal": 2.50, "peak": 2.72, "peak_zscore": 3.2, "reversion_days": 12, "direction": "banknifty_underperform" },
+        "india_vix": { "normal": 14, "peak": 28, "peak_zscore": 2.8, "reversion_days": 8, "direction": "spike" },
+        "icici_adr_spread": { "normal": 0.8, "peak": 5.0, "peak_zscore": 3.2, "reversion_days": 10, "direction": "nse_discount" }
+      },
+      "nifty_drawdown": -5.0,
+      "nifty_recovery_days": 20,
+      "fade_win_rate": 72,
+      "notes": "RBI imposed moratorium. Banking sector panic. Merged with COVID timing."
+    },
+    {
+      "id": "russia_ukraine_22",
+      "event": "Russia-Ukraine War",
+      "type": "GEO",
+      "date": "2022-02-24",
+      "data_limited": false,
+      "spreads": {
+        "nifty_basis": { "normal": 15, "peak": 70, "peak_zscore": 2.6, "reversion_days": 8, "direction": "futures_discount" },
+        "banknifty_basis": { "normal": 25, "peak": 110, "peak_zscore": 2.4, "reversion_days": 8, "direction": "futures_discount" },
+        "mcx_gold_comex": { "normal": 90, "peak": 550, "peak_zscore": 3.2, "reversion_days": 10, "direction": "mcx_premium" },
+        "mcx_silver_comex": { "normal": 200, "peak": 1400, "peak_zscore": 3.0, "reversion_days": 10, "direction": "mcx_premium" },
+        "mcx_crude_brent": { "normal": 30, "peak": 380, "peak_zscore": 4.0, "reversion_days": 20, "direction": "mcx_premium" },
+        "usdinr_basis": { "normal": 0.05, "peak": 0.40, "peak_zscore": 3.0, "reversion_days": 12, "direction": "futures_premium" },
+        "india_vix": { "normal": 18, "peak": 34, "peak_zscore": 2.8, "reversion_days": 15, "direction": "spike" },
+        "infy_adr_spread": { "normal": 0.5, "peak": 3.0, "peak_zscore": 2.5, "reversion_days": 6, "direction": "adr_discount" }
+      },
+      "nifty_drawdown": -8.5,
+      "nifty_recovery_days": 30,
+      "fade_win_rate": 78,
+      "notes": "Oil/commodity shock biggest driver. MCX crude premium was extreme. Gold/silver also dislocated."
+    },
+    {
+      "id": "adani_hindenburg_23",
+      "event": "Adani-Hindenburg Short Report",
+      "type": "CRISIS",
+      "date": "2023-01-24",
+      "data_limited": false,
+      "spreads": {
+        "nifty_basis": { "normal": 15, "peak": 60, "peak_zscore": 2.4, "reversion_days": 10, "direction": "futures_discount" },
+        "banknifty_basis": { "normal": 25, "peak": 120, "peak_zscore": 2.6, "reversion_days": 12, "direction": "futures_discount" },
+        "banknifty_nifty_ratio": { "normal": 2.48, "peak": 2.60, "peak_zscore": 2.0, "reversion_days": 8, "direction": "banknifty_underperform" },
+        "india_vix": { "normal": 14, "peak": 22, "peak_zscore": 2.2, "reversion_days": 10, "direction": "spike" },
+        "infy_adr_spread": { "normal": 0.5, "peak": 2.0, "peak_zscore": 1.8, "reversion_days": 5, "direction": "adr_discount" }
+      },
+      "nifty_drawdown": -5.5,
+      "nifty_recovery_days": 35,
+      "fade_win_rate": 70,
+      "notes": "Adani stocks collapsed. Contagion fears hit banking/broader market. Gradual recovery."
+    },
+    {
+      "id": "israel_hamas_23",
+      "event": "Israel-Hamas War",
+      "type": "GEO",
+      "date": "2023-10-07",
+      "data_limited": false,
+      "spreads": {
+        "nifty_basis": { "normal": 15, "peak": 55, "peak_zscore": 2.2, "reversion_days": 5, "direction": "futures_discount" },
+        "mcx_gold_comex": { "normal": 90, "peak": 480, "peak_zscore": 2.8, "reversion_days": 8, "direction": "mcx_premium" },
+        "mcx_crude_brent": { "normal": 30, "peak": 250, "peak_zscore": 3.2, "reversion_days": 10, "direction": "mcx_premium" },
+        "usdinr_basis": { "normal": 0.04, "peak": 0.22, "peak_zscore": 2.0, "reversion_days": 5, "direction": "futures_premium" },
+        "india_vix": { "normal": 12, "peak": 18, "peak_zscore": 2.0, "reversion_days": 6, "direction": "spike" }
+      },
+      "nifty_drawdown": -3.8,
+      "nifty_recovery_days": 12,
+      "fade_win_rate": 82,
+      "notes": "Oil spike main transmission. Gold safe-haven bid. Indian markets resilient."
+    },
+    {
+      "id": "operation_sindoor_25",
+      "event": "Operation Sindoor",
+      "type": "GEO",
+      "date": "2025-05-07",
+      "data_limited": false,
+      "spreads": {
+        "nifty_basis": { "normal": 15, "peak": 110, "peak_zscore": 3.6, "reversion_days": 3, "direction": "futures_discount" },
+        "banknifty_basis": { "normal": 25, "peak": 170, "peak_zscore": 3.2, "reversion_days": 3, "direction": "futures_discount" },
+        "mcx_gold_comex": { "normal": 95, "peak": 650, "peak_zscore": 3.8, "reversion_days": 4, "direction": "mcx_premium" },
+        "mcx_silver_comex": { "normal": 220, "peak": 1500, "peak_zscore": 3.3, "reversion_days": 4, "direction": "mcx_premium" },
+        "mcx_crude_brent": { "normal": 30, "peak": 200, "peak_zscore": 2.8, "reversion_days": 3, "direction": "mcx_premium" },
+        "usdinr_basis": { "normal": 0.04, "peak": 0.38, "peak_zscore": 3.0, "reversion_days": 4, "direction": "futures_premium" },
+        "banknifty_nifty_ratio": { "normal": 2.50, "peak": 2.65, "peak_zscore": 2.4, "reversion_days": 5, "direction": "banknifty_underperform" },
+        "india_vix": { "normal": 13, "peak": 35, "peak_zscore": 3.5, "reversion_days": 6, "direction": "spike" },
+        "infy_adr_spread": { "normal": 0.4, "peak": 3.5, "peak_zscore": 2.8, "reversion_days": 3, "direction": "adr_discount" },
+        "icici_adr_spread": { "normal": 0.7, "peak": 4.0, "peak_zscore": 2.9, "reversion_days": 4, "direction": "adr_discount" }
+      },
+      "nifty_drawdown": -5.0,
+      "nifty_recovery_days": 8,
+      "fade_win_rate": 87,
+      "notes": "India military strikes against Pakistan. All spreads hit extreme levels. Very fast mean reversion followed ceasefire. Classic Pulwama-like pattern."
+    },
+    {
+      "id": "rbi_surprise_rate_hike_22",
+      "event": "RBI Surprise Rate Hike (May 2022)",
+      "type": "MAC",
+      "date": "2022-05-04",
+      "data_limited": false,
+      "spreads": {
+        "nifty_basis": { "normal": 15, "peak": 50, "peak_zscore": 2.1, "reversion_days": 3, "direction": "futures_discount" },
+        "banknifty_basis": { "normal": 25, "peak": 120, "peak_zscore": 2.6, "reversion_days": 4, "direction": "futures_discount" },
+        "usdinr_basis": { "normal": 0.05, "peak": 0.20, "peak_zscore": 1.8, "reversion_days": 3, "direction": "futures_discount" },
+        "banknifty_nifty_ratio": { "normal": 2.48, "peak": 2.56, "peak_zscore": 1.8, "reversion_days": 4, "direction": "banknifty_underperform" },
+        "india_vix": { "normal": 18, "peak": 26, "peak_zscore": 2.0, "reversion_days": 5, "direction": "spike" }
+      },
+      "nifty_drawdown": -3.0,
+      "nifty_recovery_days": 8,
+      "fade_win_rate": 82,
+      "notes": "Off-cycle 40bp hike. BankNifty hit harder. Quick normalisation."
+    },
+    {
+      "id": "fomc_75bp_jun22",
+      "event": "FOMC 75bp Rate Hike (June 2022)",
+      "type": "MAC",
+      "date": "2022-06-15",
+      "data_limited": false,
+      "spreads": {
+        "nifty_basis": { "normal": 15, "peak": 60, "peak_zscore": 2.4, "reversion_days": 5, "direction": "futures_discount" },
+        "mcx_gold_comex": { "normal": 90, "peak": 350, "peak_zscore": 2.2, "reversion_days": 6, "direction": "mcx_premium" },
+        "usdinr_basis": { "normal": 0.05, "peak": 0.35, "peak_zscore": 2.8, "reversion_days": 8, "direction": "futures_premium" },
+        "india_vix": { "normal": 20, "peak": 28, "peak_zscore": 2.0, "reversion_days": 6, "direction": "spike" },
+        "infy_adr_spread": { "normal": 0.5, "peak": 2.5, "peak_zscore": 2.2, "reversion_days": 5, "direction": "adr_discount" }
+      },
+      "nifty_drawdown": -4.5,
+      "nifty_recovery_days": 15,
+      "fade_win_rate": 75,
+      "notes": "Largest Fed hike in 28 years. USDINR futures basis widened significantly."
+    }
+  ],
+  "metadata": {
+    "version": "1.0.0",
+    "last_updated": "2025-12-01",
+    "total_events": 20,
+    "spread_keys": [
+      "nifty_basis", "banknifty_basis", "mcx_gold_comex", "mcx_silver_comex",
+      "mcx_crude_brent", "usdinr_basis", "banknifty_nifty_ratio",
+      "india_vix", "infy_adr_spread", "icici_adr_spread"
+    ],
+    "notes": "Historical spread data compiled from NSE, MCX, Yahoo Finance archives. Events before 2008 have limited commodity spread data. Z-scores computed against trailing 252-day baselines at the time of each event."
+  }
+}

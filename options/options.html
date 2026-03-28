@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=600">
+  <title>Dislocation Radar India — Settings</title>
+  <style>
+    :root {
+      --bg: #0d1117;
+      --bg2: #161b22;
+      --bg3: #21262d;
+      --border: #30363d;
+      --text: #c9d1d9;
+      --text2: #8b949e;
+      --text3: #6e7681;
+      --blue: #58a6ff;
+      --green: #3fb950;
+      --red: #f85149;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+      font-size: 13px;
+      line-height: 1.5;
+      padding: 30px;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    body.light {
+      --bg: #ffffff;
+      --bg2: #f6f8fa;
+      --bg3: #eaeef2;
+      --border: #d0d7de;
+      --text: #1f2328;
+      --text2: #656d76;
+      --text3: #8b949e;
+    }
+
+    h1 {
+      font-size: 18px;
+      margin-bottom: 4px;
+      color: var(--text);
+    }
+
+    .subtitle {
+      font-size: 12px;
+      color: var(--text3);
+      margin-bottom: 24px;
+    }
+
+    .section {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 16px 20px;
+      margin-bottom: 16px;
+    }
+
+    .section-title {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text3);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+
+    .option-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .option-row:last-child { border-bottom: none; }
+
+    .option-label {
+      font-size: 12px;
+      color: var(--text);
+    }
+
+    .option-desc {
+      font-size: 10px;
+      color: var(--text3);
+      margin-top: 2px;
+    }
+
+    /* Toggle switch */
+    .toggle {
+      position: relative;
+      width: 36px;
+      height: 20px;
+      flex-shrink: 0;
+    }
+
+    .toggle input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .toggle-slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: var(--bg3);
+      border-radius: 20px;
+      transition: 0.2s;
+      border: 1px solid var(--border);
+    }
+
+    .toggle-slider::before {
+      content: '';
+      position: absolute;
+      height: 14px;
+      width: 14px;
+      left: 2px;
+      bottom: 2px;
+      background: var(--text3);
+      border-radius: 50%;
+      transition: 0.2s;
+    }
+
+    .toggle input:checked + .toggle-slider {
+      background: rgba(88, 166, 255, 0.3);
+      border-color: var(--blue);
+    }
+
+    .toggle input:checked + .toggle-slider::before {
+      transform: translateX(16px);
+      background: var(--blue);
+    }
+
+    /* Select / Input */
+    select, input[type="number"] {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-family: inherit;
+      font-size: 11px;
+    }
+
+    select:focus, input:focus {
+      outline: none;
+      border-color: var(--blue);
+    }
+
+    input[type="number"] {
+      width: 60px;
+      text-align: center;
+    }
+
+    /* Spread checkboxes */
+    .spread-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+
+    .spread-check {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 8px;
+      background: var(--bg3);
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 11px;
+      color: var(--text2);
+      transition: all 0.15s;
+    }
+
+    .spread-check:hover {
+      background: var(--border);
+    }
+
+    .spread-check input {
+      accent-color: var(--blue);
+    }
+
+    .spread-check input:checked ~ span {
+      color: var(--text);
+    }
+
+    /* Threshold inputs */
+    .threshold-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+
+    .threshold-item {
+      text-align: center;
+    }
+
+    .threshold-label {
+      font-size: 9px;
+      color: var(--text3);
+      margin-bottom: 4px;
+      display: block;
+    }
+
+    /* Save status */
+    .save-status {
+      font-size: 11px;
+      color: var(--green);
+      opacity: 0;
+      transition: opacity 0.3s;
+      text-align: center;
+      padding: 8px;
+    }
+
+    .save-status.visible { opacity: 1; }
+
+    /* Footer */
+    .footer {
+      text-align: center;
+      padding: 16px;
+      font-size: 10px;
+      color: var(--text3);
+    }
+  </style>
+</head>
+<body>
+  <h1>Dislocation Radar India — Settings</h1>
+  <p class="subtitle">Configure spread monitoring, alerts, and display preferences</p>
+
+  <!-- Spreads to Monitor -->
+  <div class="section">
+    <div class="section-title">Spreads to Monitor</div>
+    <div class="spread-grid" id="spreadToggles"></div>
+  </div>
+
+  <!-- Z-Score Thresholds -->
+  <div class="section">
+    <div class="section-title">Z-Score Alert Thresholds</div>
+    <div class="threshold-grid">
+      <div class="threshold-item">
+        <span class="threshold-label" style="color:#d29922">ELEVATED</span>
+        <input type="number" id="thresh-elevated" step="0.1" min="0.5" max="5">
+      </div>
+      <div class="threshold-item">
+        <span class="threshold-label" style="color:#db6d28">WARNING</span>
+        <input type="number" id="thresh-warning" step="0.1" min="0.5" max="5">
+      </div>
+      <div class="threshold-item">
+        <span class="threshold-label" style="color:#f85149">ALERT</span>
+        <input type="number" id="thresh-alert" step="0.1" min="0.5" max="5">
+      </div>
+      <div class="threshold-item">
+        <span class="threshold-label" style="color:#da3633">EXTREME</span>
+        <input type="number" id="thresh-extreme" step="0.1" min="0.5" max="5">
+      </div>
+    </div>
+  </div>
+
+  <!-- General Settings -->
+  <div class="section">
+    <div class="section-title">General</div>
+
+    <div class="option-row">
+      <div>
+        <div class="option-label">News Detection</div>
+        <div class="option-desc">Scan Google News for geopolitical/macro events</div>
+      </div>
+      <label class="toggle">
+        <input type="checkbox" id="newsEnabled">
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+
+    <div class="option-row">
+      <div>
+        <div class="option-label">Sound Alerts</div>
+        <div class="option-desc">Play sound on extreme dislocations</div>
+      </div>
+      <label class="toggle">
+        <input type="checkbox" id="soundEnabled">
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+
+    <div class="option-row">
+      <div>
+        <div class="option-label">Floating Widget</div>
+        <div class="option-desc">Show widget on trading sites</div>
+      </div>
+      <label class="toggle">
+        <input type="checkbox" id="widgetEnabled">
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+
+    <div class="option-row">
+      <div>
+        <div class="option-label">Dark Mode</div>
+        <div class="option-desc">Dark theme for popup and settings</div>
+      </div>
+      <label class="toggle">
+        <input type="checkbox" id="darkMode">
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+
+    <div class="option-row">
+      <div>
+        <div class="option-label">Refresh Interval</div>
+        <div class="option-desc">How often to fetch live data</div>
+      </div>
+      <select id="refreshInterval">
+        <option value="30">30 seconds</option>
+        <option value="60">60 seconds</option>
+        <option value="120">2 minutes</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Widget Sites -->
+  <div class="section">
+    <div class="section-title">Widget Sites</div>
+    <div class="spread-grid" id="siteToggles"></div>
+  </div>
+
+  <div class="save-status" id="saveStatus">Settings saved</div>
+
+  <div class="footer">
+    Dislocation Radar India v1.0.0 — Data from Yahoo Finance, ExchangeRate API, Google News
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>

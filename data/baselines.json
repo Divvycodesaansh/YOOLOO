@@ -1,0 +1,114 @@
+{
+  "version": "1.0.0",
+  "last_updated": "2025-12-01",
+  "period": "252 trading days",
+  "description": "Rolling 252-day mean and standard deviation for each spread. Updated weekly.",
+  "baselines": {
+    "nifty_basis": {
+      "label": "Nifty Futures Basis",
+      "unit": "points",
+      "mean": 18.5,
+      "std": 22.0,
+      "median": 15.0,
+      "percentile_95": 55.0,
+      "percentile_99": 85.0,
+      "direction_note": "Positive = futures premium, Negative = futures discount"
+    },
+    "banknifty_basis": {
+      "label": "BankNifty Futures Basis",
+      "unit": "points",
+      "mean": 30.0,
+      "std": 38.0,
+      "median": 25.0,
+      "percentile_95": 90.0,
+      "percentile_99": 140.0,
+      "direction_note": "Positive = futures premium, Negative = futures discount"
+    },
+    "mcx_gold_comex": {
+      "label": "MCX Gold - COMEX Gold",
+      "unit": "INR/10g",
+      "mean": 92.0,
+      "std": 115.0,
+      "median": 80.0,
+      "percentile_95": 280.0,
+      "percentile_99": 450.0,
+      "direction_note": "Positive = MCX premium over international price"
+    },
+    "mcx_silver_comex": {
+      "label": "MCX Silver - COMEX Silver",
+      "unit": "INR/kg",
+      "mean": 210.0,
+      "std": 320.0,
+      "median": 180.0,
+      "percentile_95": 750.0,
+      "percentile_99": 1200.0,
+      "direction_note": "Positive = MCX premium over international price"
+    },
+    "mcx_crude_brent": {
+      "label": "MCX Crude - ICE Brent",
+      "unit": "INR/barrel",
+      "mean": 28.0,
+      "std": 55.0,
+      "median": 22.0,
+      "percentile_95": 120.0,
+      "percentile_99": 200.0,
+      "direction_note": "Positive = MCX premium over international price"
+    },
+    "usdinr_basis": {
+      "label": "USDINR Futures - RBI Spot",
+      "unit": "INR",
+      "mean": 0.045,
+      "std": 0.095,
+      "median": 0.04,
+      "percentile_95": 0.20,
+      "percentile_99": 0.35,
+      "direction_note": "Positive = futures premium over spot"
+    },
+    "banknifty_nifty_ratio": {
+      "label": "BankNifty / Nifty Ratio",
+      "unit": "ratio",
+      "mean": 2.48,
+      "std": 0.065,
+      "median": 2.48,
+      "percentile_95": 2.58,
+      "percentile_99": 2.65,
+      "direction_note": "Higher = BankNifty outperforming"
+    },
+    "india_vix": {
+      "label": "India VIX",
+      "unit": "level",
+      "mean": 13.8,
+      "std": 4.5,
+      "median": 12.5,
+      "percentile_95": 22.0,
+      "percentile_99": 30.0,
+      "direction_note": "Higher = more fear"
+    },
+    "infy_adr_spread": {
+      "label": "INFY NSE vs NYSE ADR",
+      "unit": "%",
+      "mean": 0.35,
+      "std": 0.80,
+      "median": 0.25,
+      "percentile_95": 1.80,
+      "percentile_99": 3.00,
+      "direction_note": "Positive = NSE premium over ADR equivalent",
+      "adr_ratio": 1,
+      "nse_ticker": "INFY.NS",
+      "adr_ticker": "INFY"
+    },
+    "icici_adr_spread": {
+      "label": "ICICI Bank NSE vs IBN ADR",
+      "unit": "%",
+      "mean": 0.55,
+      "std": 1.10,
+      "median": 0.40,
+      "percentile_95": 2.50,
+      "percentile_99": 4.00,
+      "direction_note": "Positive = NSE premium over ADR equivalent",
+      "adr_ratio": 2,
+      "nse_ticker": "ICICIBANK.NS",
+      "adr_ticker": "IBN"
+    }
+  }
+}
