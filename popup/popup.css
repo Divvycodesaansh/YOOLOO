@@ -166,6 +166,8 @@ h1 { font-size: 13px; font-weight: 800; color: var(--neon-cyan); letter-spacing:
 .event-type-badge.SUPPLY { background: rgba(255,140,66,0.15); color: var(--accent-orange); }
 .event-type-badge.CRISIS { background: rgba(192,132,252,0.15); color: var(--accent-purple); }
 .event-headline { font-size: 10px; color: var(--text-primary); flex: 1; }
+a.event-link { color: var(--text-primary); text-decoration: none; cursor: pointer; transition: color 0.15s; }
+a.event-link:hover { color: var(--neon-cyan); text-decoration: underline; text-shadow: 0 0 6px rgba(34,211,238,0.2); }
 .event-time { font-size: 9px; color: var(--text-muted); white-space: nowrap; }
 
 /* ─── Velocity ────────────────────────────────────────────────── */

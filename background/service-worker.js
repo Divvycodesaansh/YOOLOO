@@ -68,7 +68,8 @@ chrome.runtime.onInstalled.addListener(async () => {
   await initializeSettings();
   await loadBaselines();
   console.log('[DR] Extension installed. Alarms set.');
-  // Run initial fetch
+  // Run initial fetch + news
+  detectNews().catch(() => {});
   fetchAndCalculate();
 });
 

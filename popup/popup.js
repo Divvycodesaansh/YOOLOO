@@ -160,29 +160,35 @@ function renderEvents(events, velocity) {
   }
   section.classList.remove('hidden');
 
+  let html = '';
+
   // Velocity meter
   if (velocity && velocity.ratio > 1) {
     meter.classList.remove('hidden');
     const barWidth = Math.min(velocity.ratio / 10 * 100, 100);
-    const barColor = velocity.alert ? '#f85149' : '#d29922';
-    meter.innerHTML = `<div class="vel-bar" style="width:${barWidth}%;background:${barColor}"></div><span class="vel-label">${velocity.ratio}x</span>`;
+    meter.innerHTML = `<div class="vel-bar" style="width:${barWidth}%"></div><span class="vel-label">${velocity.ratio.toFixed(1)}x</span>`;
     if (velocity.alert) {
-      content.innerHTML = `<div class="velocity-alert">${velocity.message}</div>`;
+      html += `<div class="velocity-alert">${escapeHtml(velocity.message)}</div>`;
     }
   } else {
     meter.classList.add('hidden');
   }
 
   if (events && events.length > 0) {
-    const eventsHtml = events.slice(0, 3).map(event => `
-      <div class="event-item ${event.type}">
+    html += events.slice(0, 5).map(event => {
+      const headline = escapeHtml(event.headline);
+      const headlineEl = event.link
+        ? `<a class="event-headline event-link" href="${escapeHtml(event.link)}" target="_blank" rel="noopener">${headline}</a>`
+        : `<span class="event-headline">${headline}</span>`;
+      return `<div class="event-item ${event.type}">
         <span class="event-type-badge ${event.type}">${event.type}</span>
-        <span class="event-headline">${escapeHtml(event.headline)}</span>
+        ${headlineEl}
         <span class="event-time">${timeAgo(event.timestamp)}</span>
-      </div>
-    `).join('');
-    content.innerHTML = (velocity?.alert ? content.innerHTML : '') + eventsHtml;
+      </div>`;
+    }).join('');
   }
+
+  content.innerHTML = html;
 }
 
 // ─── Ripple Check ────────────────────────────────────────────────────────────
