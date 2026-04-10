@@ -225,3 +225,92 @@ export async function getActiveEvents() {
   const { activeEvents = [] } = await chrome.storage.local.get('activeEvents');
   return activeEvents;
 }
+
+// ─── Sentiment Velocity Tracker (Upgrade 5) ─────────────────────────────────
+
+export async function trackNewsVelocity(detectedItems) {
+  const now = Date.now();
+  const hourKey = new Date(now).toISOString().slice(0, 13); // YYYY-MM-DDTHH
+
+  // Load velocity history
+  const { velocityHistory = {} } = await chrome.storage.local.get('velocityHistory');
+
+  // Count headlines per keyword group this hour
+  const hourlyCounts = {};
+  for (const type of Object.keys(KEYWORD_GROUPS)) {
+    hourlyCounts[type] = (detectedItems || []).filter(i => i.classifiedType === type || i.detectedType === type).length;
+  }
+
+  // Store this hour's counts
+  velocityHistory[hourKey] = hourlyCounts;
+
+  // Prune entries older than 30 days
+  const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
+  for (const key of Object.keys(velocityHistory)) {
+    if (new Date(key + ':00:00Z').getTime() < thirtyDaysAgo) {
+      delete velocityHistory[key];
+    }
+  }
+
+  await chrome.storage.local.set({ velocityHistory });
+
+  // Calculate velocity ratios
+  return computeVelocityAlert(velocityHistory, hourlyCounts, hourKey);
+}
+
+function computeVelocityAlert(history, currentCounts, currentKey) {
+  const hourKeys = Object.keys(history).filter(k => k !== currentKey);
+  if (hourKeys.length < 24) {
+    return { alert: false, ratio: 0, message: null, perGroup: {} };
+  }
+
+  const perGroup = {};
+  let maxRatio = 0;
+  let maxGroup = null;
+
+  for (const type of Object.keys(KEYWORD_GROUPS)) {
+    // Calculate average hourly count for this group
+    const pastCounts = hourKeys.map(k => (history[k]?.[type] || 0));
+    const avg = pastCounts.reduce((s, v) => s + v, 0) / pastCounts.length || 0.1;
+    const current = currentCounts[type] || 0;
+    const ratio = current / Math.max(avg, 0.1);
+
+    perGroup[type] = {
+      current,
+      normal: parseFloat(avg.toFixed(1)),
+      ratio: parseFloat(ratio.toFixed(1))
+    };
+
+    if (ratio > maxRatio) {
+      maxRatio = ratio;
+      maxGroup = type;
+    }
+  }
+
+  const totalCurrent = Object.values(currentCounts).reduce((s, v) => s + v, 0);
+  const totalAvg = hourKeys.reduce((s, k) => {
+    return s + Object.values(history[k] || {}).reduce((ss, v) => ss + v, 0);
+  }, 0) / hourKeys.length || 0.1;
+  const totalRatio = totalCurrent / Math.max(totalAvg, 0.1);
+
+  const alert = totalRatio >= 5;
+  const message = alert
+    ? `NEWS VELOCITY ${Math.round(totalRatio)}x NORMAL — peak market fear is typically 4-6 hours away based on historical patterns.`
+    : null;
+
+  return {
+    alert,
+    ratio: parseFloat(totalRatio.toFixed(1)),
+    maxGroup,
+    maxGroupRatio: parseFloat(maxRatio.toFixed(1)),
+    totalCurrent,
+    totalNormal: parseFloat(totalAvg.toFixed(1)),
+    message,
+    perGroup
+  };
+}
+
+export async function getNewsVelocity() {
+  const { lastVelocity } = await chrome.storage.local.get('lastVelocity');
+  return lastVelocity || { alert: false, ratio: 0, message: null, perGroup: {} };
+}

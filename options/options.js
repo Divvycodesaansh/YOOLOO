@@ -10,7 +10,16 @@ const SPREAD_NAMES = {
   banknifty_nifty_ratio: 'BankNifty/Nifty Ratio',
   india_vix: 'India VIX',
   infy_adr_spread: 'INFY NSE vs ADR',
-  icici_adr_spread: 'ICICI NSE vs ADR'
+  icici_adr_spread: 'ICICI NSE vs ADR',
+  nifty_it_nasdaq_ratio: 'Nifty IT / NASDAQ',
+  nifty_psu_pvt_bank_ratio: 'PSU Bank / Pvt Bank',
+  nifty_pharma_nifty_ratio: 'Nifty Pharma / Nifty',
+  nifty500_nifty50_ratio: 'Nifty500 / Nifty50 (Breadth)',
+  gold_silver_ratio: 'Gold / Silver Ratio',
+  india_us_10y_spread: 'India-US 10Y Bond Spread',
+  nifty_pcr: 'Nifty Put/Call Ratio',
+  fii_net_flow: 'FII Net Flow (Z-Score)',
+  ois_repo_spread: 'OIS - Repo Rate Spread'
 };
 
 const WIDGET_SITES = [
@@ -28,7 +37,10 @@ const DEFAULT_SETTINGS = {
   widgetSites: WIDGET_SITES.map(s => s.id),
   darkMode: true,
   refreshInterval: 60,
-  rippleEnabled: true
+  rippleEnabled: true,
+  fearTempEnabled: true,
+  regimeEnabled: true,
+  fiiRadarEnabled: true
 };
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -85,6 +97,9 @@ function populateFields(settings) {
 
   document.getElementById('newsEnabled').checked = settings.newsEnabled !== false;
   document.getElementById('rippleEnabled').checked = settings.rippleEnabled !== false;
+  document.getElementById('fearTempEnabled').checked = settings.fearTempEnabled !== false;
+  document.getElementById('regimeEnabled').checked = settings.regimeEnabled !== false;
+  document.getElementById('fiiRadarEnabled').checked = settings.fiiRadarEnabled !== false;
   document.getElementById('soundEnabled').checked = settings.soundEnabled !== false;
   document.getElementById('widgetEnabled').checked = settings.widgetEnabled !== false;
   document.getElementById('darkMode').checked = settings.darkMode !== false;
@@ -125,6 +140,9 @@ async function saveSettings() {
     },
     newsEnabled: document.getElementById('newsEnabled').checked,
     rippleEnabled: document.getElementById('rippleEnabled').checked,
+    fearTempEnabled: document.getElementById('fearTempEnabled').checked,
+    regimeEnabled: document.getElementById('regimeEnabled').checked,
+    fiiRadarEnabled: document.getElementById('fiiRadarEnabled').checked,
     soundEnabled: document.getElementById('soundEnabled').checked,
     widgetEnabled: document.getElementById('widgetEnabled').checked,
     darkMode: document.getElementById('darkMode').checked,

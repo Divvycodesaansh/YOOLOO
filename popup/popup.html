@@ -2,12 +2,12 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=400">
+  <meta name="viewport" content="width=420">
   <link rel="stylesheet" href="popup.css">
   <title>Dislocation Radar India</title>
 </head>
 <body>
-  <!-- Top Bar -->
+  <!-- Top Bar with Fear Temperature -->
   <header id="topBar">
     <div class="title-row">
       <h1>Dislocation Radar <span class="flag">IN</span></h1>
@@ -21,13 +21,26 @@
       <span id="marketStatus" class="market-badge">--</span>
       <button id="refreshBtn" class="icon-btn" title="Force refresh">&#x21bb;</button>
     </div>
+    <!-- Fear Temperature Thermometer -->
+    <div id="fearTempBar" class="fear-temp-bar">
+      <div class="fear-temp-gauge">
+        <div id="fearTempFill" class="fear-temp-fill" style="width:0%"></div>
+        <span id="fearTempScore" class="fear-temp-score">--</span>
+      </div>
+      <span id="fearTempLabel" class="fear-temp-label">--</span>
+    </div>
+    <div id="fearTempContext" class="fear-temp-context"></div>
   </header>
 
-  <!-- Section 1: Active Event -->
+  <!-- Regime Banner -->
+  <div id="regimeBanner" class="regime-banner hidden"></div>
+
+  <!-- Section 1: Active Event + Velocity -->
   <section id="eventSection" class="section hidden">
     <div class="section-header">
       <span class="section-icon">&#x26A1;</span>
       <span class="section-title">ACTIVE EVENT</span>
+      <div id="velocityMeter" class="velocity-meter hidden"></div>
     </div>
     <div id="eventContent" class="event-content"></div>
   </section>
@@ -41,30 +54,45 @@
     <div id="rippleContent" class="ripple-content"></div>
   </section>
 
-  <!-- Section 2: Spread Dashboard -->
+  <!-- Section 2: Contagion Chain -->
+  <section id="contagionSection" class="section hidden">
+    <div class="section-header">
+      <span class="section-icon">&#x1F517;</span>
+      <span class="section-title">CONTAGION PATH</span>
+    </div>
+    <div id="contagionContent" class="contagion-content"></div>
+  </section>
+
+  <!-- Section 3: Spread Heatmap -->
   <section id="spreadSection" class="section">
     <div class="section-header">
       <span class="section-icon">&#x1F4CA;</span>
-      <span class="section-title">SPREAD DASHBOARD</span>
+      <span class="section-title">SPREAD HEATMAP</span>
+      <div id="confirmationDots" class="confirmation-dots"></div>
     </div>
-    <div class="table-wrapper">
-      <table id="spreadTable">
-        <thead>
-          <tr>
-            <th>Spread</th>
-            <th>Current</th>
-            <th>Normal</th>
-            <th>Z-Score</th>
-            <th>30d</th>
-          </tr>
-        </thead>
-        <tbody id="spreadBody"></tbody>
-      </table>
-    </div>
+    <div id="heatmapGrid" class="heatmap-grid"></div>
     <div id="noData" class="no-data hidden">No spread data yet. Waiting for first fetch...</div>
   </section>
 
-  <!-- Section 3: Historical Match -->
+  <!-- Section 4: Reversion Countdowns -->
+  <section id="reversionSection" class="section hidden">
+    <div class="section-header">
+      <span class="section-icon">&#x23F1;</span>
+      <span class="section-title">REVERSION COUNTDOWN</span>
+    </div>
+    <div id="reversionContent" class="reversion-content"></div>
+  </section>
+
+  <!-- Section 5: FII Radar -->
+  <section id="fiiSection" class="section hidden">
+    <div class="section-header">
+      <span class="section-icon">&#x1F4B8;</span>
+      <span class="section-title">FII RADAR</span>
+    </div>
+    <div id="fiiContent" class="fii-content"></div>
+  </section>
+
+  <!-- Section 6: Historical Match -->
   <section id="analogSection" class="section hidden">
     <div class="section-header">
       <span class="section-icon">&#x1F50D;</span>
@@ -73,7 +101,16 @@
     <div id="analogContent" class="analog-content"></div>
   </section>
 
-  <!-- Section 4: Quick Stats -->
+  <!-- Section 7: Timeline -->
+  <section id="timelineSection" class="section hidden">
+    <div class="section-header">
+      <span class="section-icon">&#x1F4C5;</span>
+      <span class="section-title">EVENT TIMELINE</span>
+    </div>
+    <div id="timelineContent" class="timeline-content"></div>
+  </section>
+
+  <!-- Section 8: Fade Stats -->
   <section id="statsSection" class="section hidden">
     <div class="section-header">
       <span class="section-icon">&#x1F4B9;</span>
@@ -86,9 +123,9 @@
   <footer>
     <a href="#" id="settingsLink">Settings</a>
     <span class="sep">|</span>
-    <span class="version">v1.0.0</span>
+    <span class="version">v2.0.0</span>
     <span class="sep">|</span>
-    <span class="data-note">Data: Yahoo Finance, ExchangeRate API</span>
+    <span class="data-note">19 Spreads | VIX-Regime Z-Scores</span>
   </footer>
 
   <script src="popup.js"></script>

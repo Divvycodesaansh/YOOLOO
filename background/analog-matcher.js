@@ -23,7 +23,10 @@ async function loadHistoricalEvents() {
 const SPREAD_KEYS = [
   'nifty_basis', 'banknifty_basis', 'mcx_gold_comex', 'mcx_silver_comex',
   'mcx_crude_brent', 'usdinr_basis', 'banknifty_nifty_ratio',
-  'india_vix', 'infy_adr_spread', 'icici_adr_spread'
+  'india_vix', 'infy_adr_spread', 'icici_adr_spread',
+  'nifty_it_nasdaq_ratio', 'nifty_psu_pvt_bank_ratio', 'nifty_pharma_nifty_ratio',
+  'nifty500_nifty50_ratio', 'gold_silver_ratio', 'india_us_10y_spread',
+  'nifty_pcr', 'fii_net_flow', 'ois_repo_spread'
 ];
 
 // Build a z-score vector from current spreads

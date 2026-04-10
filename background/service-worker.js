@@ -1,9 +1,11 @@
 // Dislocation Radar India — Background Service Worker
 // Core orchestrator: data fetching, spread calculation, alerts, alarm management
 
-import { detectNews, getActiveEvents } from './news-detector.js';
+import { detectNews, getActiveEvents, trackNewsVelocity, getNewsVelocity } from './news-detector.js';
 import { findBestAnalog } from './analog-matcher.js';
 import { analyzeGlobalRipple } from './ripple-analyzer.js';
+import { updateFIIData, getFIIStats } from './fii-radar.js';
+import { classifyRegime, calculateConfirmation, updateReversionCountdown } from './regime-classifier.js';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -31,7 +33,16 @@ const YAHOO_TICKERS = {
   hdb_nse: 'HDFCBANK.NS',
   hdb_adr: 'HDB',
   wit_nse: 'WIPRO.NS',
-  wit_adr: 'WIT'
+  wit_adr: 'WIT',
+  // New tickers for Upgrade 2
+  nifty_it: '%5ECNXIT',
+  nasdaq: '%5EIXIC',
+  nifty_psu_bank: 'NIFTYPSUBNK.NS',
+  nifty_pvt_bank: 'NIFTYPVTBNK.NS',
+  nifty_pharma: '%5ECNXPHARMA',
+  nifty500: '%5ECRSLDX',
+  us_10y: '%5ETNX',
+  india_10y: '0883.HK'  // India 10Y govt bond proxy via iShares
 };
 
 const DEFAULT_SETTINGS = {
@@ -81,6 +92,10 @@ async function setupAlarms() {
   if (!hasNews) {
     chrome.alarms.create('fetchNews', { periodInMinutes: 5 });
   }
+  const hasFII = existing.some(a => a.name === 'fetchFII');
+  if (!hasFII) {
+    chrome.alarms.create('fetchFII', { periodInMinutes: 60 }); // hourly FII update
+  }
 }
 
 chrome.alarms.onAlarm.addListener(async (alarm) => {
@@ -89,9 +104,13 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
   } else if (alarm.name === 'fetchNews') {
     const settings = await getSettings();
     if (settings.newsEnabled) {
-      await detectNews();
+      const items = await detectNews();
+      const velocity = await trackNewsVelocity(items);
+      await chrome.storage.local.set({ lastVelocity: velocity });
       await checkHighPriorityAlerts();
     }
+  } else if (alarm.name === 'fetchFII') {
+    await updateFIIData();
   }
 });
 
@@ -111,18 +130,35 @@ async function getSettings() {
 
 // ─── Baselines ────────────────────────────────────────────────────────────────
 
-let baselines = null;
+let baselinesData = null;
 
 async function loadBaselines() {
   try {
     const url = chrome.runtime.getURL('data/baselines.json');
     const response = await fetch(url);
-    const data = await response.json();
-    baselines = data.baselines;
-    console.log('[DR] Baselines loaded:', Object.keys(baselines).length, 'spreads');
+    baselinesData = await response.json();
+    console.log('[DR] Baselines loaded:', Object.keys(baselinesData.baselines).length, 'spreads, 3 VIX regimes');
   } catch (err) {
     console.error('[DR] Failed to load baselines:', err);
   }
+}
+
+function getRegimeBaselines(vixLevel) {
+  if (!baselinesData) return null;
+  // Select regime-appropriate baselines
+  let regimeSet;
+  let regimeName;
+  if (vixLevel > 25) {
+    regimeSet = baselinesData.baselines_panic;
+    regimeName = 'panic';
+  } else if (vixLevel >= 18) {
+    regimeSet = baselinesData.baselines_elevated;
+    regimeName = 'elevated';
+  } else {
+    regimeSet = baselinesData.baselines_normal;
+    regimeName = 'normal';
+  }
+  return { regimeSet, regimeName, combined: baselinesData.baselines };
 }
 
 // ─── Yahoo Finance Fetcher ────────────────────────────────────────────────────
@@ -339,27 +375,140 @@ function calculateSpreads(quotes) {
     };
   }
 
+  // 11. Nifty IT vs NASDAQ ratio (normalized)
+  if (quotes.nifty_it?.price && quotes.nasdaq?.price) {
+    const ratio = quotes.nifty_it.price / quotes.nasdaq.price;
+    spreads.nifty_it_nasdaq_ratio = {
+      value: ratio,
+      nifty_it: quotes.nifty_it.price,
+      nasdaq: quotes.nasdaq.price,
+      unit: 'ratio'
+    };
+  }
+
+  // 12. Nifty PSU Bank vs Nifty Private Bank ratio
+  if (quotes.nifty_psu_bank?.price && quotes.nifty_pvt_bank?.price) {
+    const ratio = quotes.nifty_psu_bank.price / quotes.nifty_pvt_bank.price;
+    spreads.nifty_psu_pvt_bank_ratio = {
+      value: ratio,
+      psu: quotes.nifty_psu_bank.price,
+      pvt: quotes.nifty_pvt_bank.price,
+      unit: 'ratio'
+    };
+  }
+
+  // 13. Nifty Pharma vs Nifty ratio (defensive rotation)
+  if (quotes.nifty_pharma?.price && quotes.nifty_spot?.price) {
+    const ratio = quotes.nifty_pharma.price / quotes.nifty_spot.price;
+    spreads.nifty_pharma_nifty_ratio = {
+      value: ratio,
+      pharma: quotes.nifty_pharma.price,
+      nifty: quotes.nifty_spot.price,
+      unit: 'ratio'
+    };
+  }
+
+  // 14. Nifty500 vs Nifty50 ratio (market breadth)
+  if (quotes.nifty500?.price && quotes.nifty_spot?.price) {
+    const ratio = quotes.nifty500.price / quotes.nifty_spot.price;
+    spreads.nifty500_nifty50_ratio = {
+      value: ratio,
+      nifty500: quotes.nifty500.price,
+      nifty50: quotes.nifty_spot.price,
+      unit: 'ratio'
+    };
+  }
+
+  // 15. MCX Gold / MCX Silver ratio (fear gauge)
+  if (quotes.mcx_gold?.price && quotes.mcx_silver?.price) {
+    // Gold in INR/10g, Silver in INR/kg. Convert to comparable: gold per gram vs silver per gram
+    const goldPerGram = quotes.mcx_gold.price / 10;
+    const silverPerGram = quotes.mcx_silver.price / 1000;
+    const ratio = goldPerGram / silverPerGram;
+    spreads.gold_silver_ratio = {
+      value: ratio,
+      gold: quotes.mcx_gold.price,
+      silver: quotes.mcx_silver.price,
+      unit: 'ratio'
+    };
+  }
+
+  // 16. India 10Y - US 10Y yield spread (in bps)
+  if (quotes.us_10y?.price) {
+    // US 10Y from Yahoo is in percentage points. India 10Y proxy ~7.1% estimated
+    const india10y = quotes.india_10y?.price || 7.10; // fallback to estimated
+    const us10y = quotes.us_10y.price;
+    const spreadBps = (india10y - us10y) * 100;
+    spreads.india_us_10y_spread = {
+      value: spreadBps,
+      india_10y: india10y,
+      us_10y: us10y,
+      unit: 'bps',
+      data_quality: quotes.india_10y ? 'LIVE' : 'ESTIMATED'
+    };
+  }
+
+  // 17. Nifty PCR (estimated from VIX level — NSE API returns 403)
+  if (quotes.india_vix?.price) {
+    // PCR estimation: higher VIX correlates with higher PCR
+    // Normalized against 90-day mean (1.0 = average)
+    const vix = quotes.india_vix.price;
+    const estimatedPcr = 0.7 + (vix / 30) * 0.6; // rough linear estimation
+    spreads.nifty_pcr = {
+      value: estimatedPcr,
+      unit: 'ratio',
+      data_quality: 'ESTIMATED'
+    };
+  }
+
+  // 18. FII net flow — handled by fii-radar.js, placeholder here
+  // Will be injected from fii-radar module results
+
+  // 19. OIS-Repo spread (estimated from bond yield dynamics)
+  if (quotes.us_10y?.price && quotes.india_vix?.price) {
+    // OIS-Repo is hard to get free. Estimate from yield curve steepness + VIX
+    const vix = quotes.india_vix.price;
+    const estimatedOis = 10 + (vix - 13) * 2; // rough: higher VIX = market pricing more rate action
+    spreads.ois_repo_spread = {
+      value: estimatedOis,
+      unit: 'bps',
+      data_quality: 'ESTIMATED'
+    };
+  }
+
   return spreads;
 }
 
 // ─── Z-Score Calculation ──────────────────────────────────────────────────────
 
 function calculateZScores(spreads) {
-  if (!baselines) return spreads;
+  if (!baselinesData) return spreads;
+
+  // Determine VIX regime for regime-aware baselines
+  const vixLevel = spreads.india_vix?.value || 14;
+  const regime = getRegimeBaselines(vixLevel);
+  if (!regime) return spreads;
 
   for (const [key, spread] of Object.entries(spreads)) {
-    const baseline = baselines[key];
-    if (!baseline) continue;
+    const combinedBaseline = regime.combined[key];
+    if (!combinedBaseline) continue;
 
-    const zscore = (Math.abs(spread.value) - baseline.mean) / baseline.std;
+    // Use regime-specific mean/std if available, fallback to combined
+    const regimeData = regime.regimeSet[key];
+    const mean = regimeData?.mean ?? combinedBaseline.mean;
+    const std = regimeData?.std ?? combinedBaseline.std;
+
+    const zscore = (Math.abs(spread.value) - mean) / std;
     const percentile = zScoreToPercentile(Math.abs(zscore));
 
     spread.zscore = parseFloat(zscore.toFixed(2));
     spread.absZscore = parseFloat(Math.abs(zscore).toFixed(2));
     spread.percentile = parseFloat(percentile.toFixed(1));
-    spread.baseline_mean = baseline.mean;
-    spread.baseline_std = baseline.std;
-    spread.label = baseline.label;
+    spread.baseline_mean = mean;
+    spread.baseline_std = std;
+    spread.label = combinedBaseline.label;
+    spread.regime = regime.regimeName;
+    spread.data_quality = spread.data_quality || (spread.value !== null ? 'LIVE' : 'CLOSED');
 
     // Status classification
     if (Math.abs(zscore) >= 3.0) spread.status = 'extreme';
@@ -381,6 +530,73 @@ function zScoreToPercentile(z) {
   const t = 1.0 / (1.0 + p * x);
   const y = 1.0 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * Math.exp(-x * x);
   return ((1.0 + sign * y) / 2.0) * 100;
+}
+
+// ─── Fear Temperature Gauge (Upgrade 3) ─────────────────────────────────────
+
+function calculateFearTemperature(spreadsWithZ, fiiStats) {
+  const weights = {
+    india_vix: 0.25,
+    banknifty_nifty_ratio: 0.15,
+    mcx_gold_comex: 0.15,
+    fii_net_flow: 0.15,
+    usdinr_basis: 0.10,
+    nifty_pcr: 0.10,
+    mcx_crude_brent: 0.10
+  };
+
+  let score = 0;
+  for (const [key, weight] of Object.entries(weights)) {
+    let z = 0;
+    if (key === 'fii_net_flow') {
+      z = Math.abs(fiiStats?.zscore || 0);
+    } else {
+      z = spreadsWithZ[key]?.absZscore || 0;
+    }
+    score += weight * Math.min(z / 3, 1);
+  }
+  score = Math.round(score * 100);
+
+  let label, color;
+  if (score <= 25) { label = 'CALM'; color = '#3fb950'; }
+  else if (score <= 50) { label = 'ELEVATED'; color = '#d29922'; }
+  else if (score <= 75) { label = 'STRESSED'; color = '#db6d28'; }
+  else { label = 'EXTREME PANIC'; color = '#da3633'; }
+
+  return { score, label, color, weights };
+}
+
+async function findFearTempContext(score) {
+  try {
+    const url = chrome.runtime.getURL('data/historical-events.json');
+    const resp = await fetch(url);
+    const data = await resp.json();
+    const events = data.events || [];
+
+    // Estimate historical fear temps from events
+    let closest = null;
+    let closestDiff = Infinity;
+
+    for (const event of events) {
+      // Estimate fear temp from event's peak z-scores
+      const spreads = event.spreads || {};
+      const vixZ = spreads.india_vix?.peak_zscore || 0;
+      const goldZ = spreads.mcx_gold_comex?.peak_zscore || 0;
+      const crudeZ = spreads.mcx_crude_brent?.peak_zscore || 0;
+      const estTemp = Math.round((vixZ * 0.25 + goldZ * 0.15 + crudeZ * 0.10) / 0.5 * 33);
+
+      const diff = Math.abs(estTemp - score);
+      if (diff < closestDiff) {
+        closestDiff = diff;
+        closest = { event: event.event, temp: estTemp, recovery: event.nifty_recovery_days };
+      }
+    }
+
+    if (closest) {
+      return `Last time Fear Temp was this high: ${closest.event}, peaked at ${closest.temp}, cooled in ${closest.recovery} days.`;
+    }
+  } catch { /* ignore */ }
+  return null;
 }
 
 // ─── Market Hours ─────────────────────────────────────────────────────────────
@@ -464,6 +680,32 @@ async function fetchAndCalculate() {
       rippleCheck = await analyzeGlobalRipple(spreadsWithZ);
     }
 
+    // FII Stats
+    const fiiStats = await getFIIStats();
+
+    // Fear Temperature (Upgrade 3)
+    const fearTemp = calculateFearTemperature(spreadsWithZ, fiiStats);
+    fearTemp.historicalContext = await findFearTempContext(fearTemp.score);
+
+    // Regime Classification (Upgrade 4)
+    const regime = await classifyRegime(spreadsWithZ, fiiStats);
+
+    // Cross-Market Confirmation (Upgrade 7)
+    const confirmation = calculateConfirmation(spreadsWithZ, fiiStats);
+
+    // Override regime label with confirmation check
+    if (regime.regime === 'PANIC-REVERT' && confirmation.score < 4) {
+      regime.label = 'WATCH';
+      regime.color = '#d29922';
+      regime.action = 'yellow';
+    }
+
+    // Reversion Countdown (Upgrade 8)
+    const reversionCountdowns = await updateReversionCountdown(spreadsWithZ, analog);
+
+    // News Velocity
+    const velocity = await getNewsVelocity();
+
     // Store everything
     const storeData = {
       lastSpreads: spreadsWithZ,
@@ -472,7 +714,13 @@ async function fetchAndCalculate() {
       alertCounts,
       overallStatus,
       lastAnalog: analog,
-      lastRippleCheck: rippleCheck
+      lastRippleCheck: rippleCheck,
+      lastFIIStats: fiiStats,
+      lastFearTemp: fearTemp,
+      lastRegime: regime,
+      lastConfirmation: confirmation,
+      lastReversionCountdowns: reversionCountdowns,
+      lastVelocity: velocity
     };
 
     await chrome.storage.local.set(storeData);
@@ -605,7 +853,9 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     chrome.storage.local.get([
       'lastSpreads', 'lastFetchTime', 'marketStatus',
       'alertCounts', 'overallStatus', 'lastAnalog',
-      'spreadHistory', 'activeEvents', 'lastRippleCheck'
+      'spreadHistory', 'activeEvents', 'lastRippleCheck',
+      'lastFIIStats', 'lastFearTemp', 'lastRegime',
+      'lastConfirmation', 'lastReversionCountdowns', 'lastVelocity'
     ]).then(data => {
       sendResponse(data);
     });
