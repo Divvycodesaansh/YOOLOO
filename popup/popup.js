@@ -1,59 +1,94 @@
-// Dislocation Radar India v2.0 — Popup Script
-// Full visual overhaul with heatmap, fear temp, regime, FII, timeline
+// Dislocation Radar v3 — popup renderer
+// Light-first, σ-tiered spreads, market-relevance news, one-regime-truth
 
 document.addEventListener('DOMContentLoaded', init);
 
 const SPREAD_CONFIG = {
-  nifty_basis: { name: 'Nifty Basis', short: 'NIFTY Basis', format: 'pts', weight: 0 },
-  banknifty_basis: { name: 'BankNifty Basis', short: 'BNIFTY Basis', format: 'pts', weight: 0 },
-  mcx_gold_comex: { name: 'MCX Gold-COMEX', short: 'Gold MCX-CMX', format: 'inr', weight: 0.15 },
-  mcx_silver_comex: { name: 'MCX Silver-COMEX', short: 'Silver MCX-CMX', format: 'inr', weight: 0 },
-  mcx_crude_brent: { name: 'MCX Crude-Brent', short: 'Crude MCX-ICE', format: 'inr', weight: 0.10 },
-  usdinr_basis: { name: 'USDINR Fut-Spot', short: 'USDINR Basis', format: 'inr3', weight: 0.10 },
-  banknifty_nifty_ratio: { name: 'BNF/Nifty Ratio', short: 'BNF/NF Ratio', format: 'ratio', weight: 0.15 },
-  india_vix: { name: 'India VIX', short: 'India VIX', format: 'level', weight: 0.25 },
-  infy_adr_spread: { name: 'INFY NSE-ADR', short: 'INFY ADR', format: 'pct', weight: 0 },
-  icici_adr_spread: { name: 'ICICI NSE-ADR', short: 'ICICI ADR', format: 'pct', weight: 0 },
-  nifty_it_nasdaq_ratio: { name: 'Nifty IT/NASDAQ', short: 'IT/NASDAQ', format: 'ratio', weight: 0 },
-  nifty_psu_pvt_bank_ratio: { name: 'PSU/Pvt Bank', short: 'PSU/PVT Bank', format: 'ratio', weight: 0 },
-  nifty_pharma_nifty_ratio: { name: 'Pharma/Nifty', short: 'Pharma/NF', format: 'ratio', weight: 0 },
-  nifty500_nifty50_ratio: { name: 'Nifty500/50', short: 'Breadth', format: 'ratio', weight: 0 },
-  gold_silver_ratio: { name: 'Gold/Silver', short: 'Au/Ag Ratio', format: 'ratio', weight: 0 },
-  india_us_10y_spread: { name: 'IN-US 10Y Spread', short: 'Bond Spread', format: 'bps', weight: 0 },
-  nifty_pcr: { name: 'Nifty PCR', short: 'PCR', format: 'ratio', weight: 0.10 },
-  fii_net_flow: { name: 'FII Net Flow', short: 'FII Flow', format: 'zscore', weight: 0.15 },
-  ois_repo_spread: { name: 'OIS-Repo', short: 'OIS-Repo', format: 'bps', weight: 0 }
+  nifty_basis:             { name: 'Nifty Basis',        short: 'Nifty Basis',   format: 'pts' },
+  banknifty_basis:         { name: 'BankNifty Basis',    short: 'BNF Basis',     format: 'pts' },
+  mcx_gold_comex:          { name: 'MCX Gold-COMEX',     short: 'Gold MCX-CMX',  format: 'inr' },
+  mcx_silver_comex:        { name: 'MCX Silver-COMEX',   short: 'Silver MCX-CMX',format: 'inr' },
+  mcx_crude_brent:         { name: 'MCX Crude-Brent',    short: 'Crude MCX-ICE', format: 'inr' },
+  usdinr_basis:            { name: 'USDINR Fut-Spot',    short: 'USDINR Basis',  format: 'inr3' },
+  banknifty_nifty_ratio:   { name: 'BankNifty / Nifty',  short: 'BNF/NF Ratio',  format: 'ratio' },
+  india_vix:               { name: 'India VIX',          short: 'India VIX',     format: 'level' },
+  infy_adr_spread:         { name: 'INFY NSE-ADR',       short: 'INFY ADR',      format: 'pct' },
+  icici_adr_spread:        { name: 'ICICI NSE-ADR',      short: 'ICICI ADR',     format: 'pct' },
+  nifty_it_nasdaq_ratio:   { name: 'Nifty IT / NASDAQ',  short: 'IT/NASDAQ',     format: 'ratio' },
+  nifty_psu_pvt_bank_ratio:{ name: 'PSU / Pvt Bank',     short: 'PSU/PVT Bank',  format: 'ratio' },
+  nifty_pharma_nifty_ratio:{ name: 'Pharma / Nifty',     short: 'Pharma/NF',     format: 'ratio' },
+  nifty500_nifty50_ratio:  { name: 'Nifty500 / Nifty50', short: 'Breadth',       format: 'ratio' },
+  gold_silver_ratio:       { name: 'Gold / Silver',      short: 'Au/Ag',         format: 'ratio' },
+  india_us_10y_spread:     { name: 'IN-US 10Y Spread',   short: 'Bond Spread',   format: 'bps' },
+  nifty_pcr:               { name: 'Nifty PCR',          short: 'PCR',           format: 'ratio' },
+  fii_net_flow:            { name: 'FII Net Flow',       short: 'FII Flow',      format: 'zscore' },
+  ois_repo_spread:         { name: 'OIS-Repo',           short: 'OIS-Repo',      format: 'bps' }
 };
 
-let contagionPaths = null;
+const HIGH_RELEVANCE_REGEX = /\b(rbi|sebi|tariff|sanction|sanctions|earnings|fii|monetary\s*policy|rate\s*hike|rate\s*cut|repo\s*rate|fed|fomc|cpi|inflation|gdp)\b/i;
+
+let state = {
+  data: null,
+  expandedSpreads: new Set(),
+  analogViewRunnerUp: false,
+  newsExpanded: false
+};
 
 async function init() {
-  await loadContagionPaths();
+  await applyThemeFromSettings();
+  listenForThemeChanges();
   await loadData();
+
   document.getElementById('refreshBtn').addEventListener('click', handleRefresh);
+  document.getElementById('settingsBtn').addEventListener('click', openSettings);
   document.getElementById('settingsLink').addEventListener('click', (e) => {
     e.preventDefault();
-    chrome.runtime.openOptionsPage();
+    openSettings();
   });
+
   chrome.runtime.onMessage.addListener((msg) => {
-    if (msg.type === 'SPREAD_UPDATE') renderAll(msg.data);
+    if (msg.type === 'SPREAD_UPDATE') {
+      state.data = msg.data;
+      renderAll();
+    }
   });
 }
 
-async function loadContagionPaths() {
-  try {
-    const url = chrome.runtime.getURL('data/contagion-paths.json');
-    const resp = await fetch(url);
-    contagionPaths = await resp.json();
-  } catch { contagionPaths = null; }
+function openSettings() {
+  chrome.runtime.openOptionsPage();
 }
+
+// ─── Theme ───────────────────────────────────────────────────────────────────
+
+async function applyThemeFromSettings() {
+  try {
+    const { settings } = await chrome.storage.sync.get('settings');
+    const dark = settings?.darkMode === true;
+    document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+  } catch {
+    document.documentElement.dataset.theme = 'light';
+  }
+}
+
+function listenForThemeChanges() {
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area === 'sync' && changes.settings) {
+      const dark = changes.settings.newValue?.darkMode === true;
+      document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+    }
+  });
+}
+
+// ─── Data flow ───────────────────────────────────────────────────────────────
 
 async function loadData() {
   try {
     const data = await chrome.runtime.sendMessage({ type: 'GET_DATA' });
-    renderAll(data);
+    state.data = data || null;
+    renderAll();
   } catch {
-    document.getElementById('noData').classList.remove('hidden');
+    state.data = null;
+    renderAll();
   }
 }
 
@@ -63,7 +98,7 @@ async function handleRefresh() {
   btn.disabled = true;
   try {
     await chrome.runtime.sendMessage({ type: 'FORCE_REFRESH' });
-    await new Promise(r => setTimeout(r, 1500));
+    await new Promise(r => setTimeout(r, 1200));
     await loadData();
   } finally {
     btn.classList.remove('spinning');
@@ -71,537 +106,572 @@ async function handleRefresh() {
   }
 }
 
-function renderAll(data) {
-  if (!data) return;
-  renderTopBar(data);
-  renderFearThermometer(data.lastFearTemp);
-  renderRegimeBanner(data.lastRegime);
-  renderPositioningSummary(data);
-  renderEvents(data.activeEvents, data.lastVelocity);
-  renderRippleCheck(data.lastRippleCheck);
-  renderContagionChain(data.activeEvents, data.lastSpreads);
-  renderHeatmapGrid(data.lastSpreads, data.spreadHistory);
-  renderConfirmationDots(data.lastConfirmation);
-  renderReversionCountdowns(data.lastReversionCountdowns);
-  renderFIISection(data.lastFIIStats);
-  renderAnalog(data.lastAnalog);
-  renderTimeline(data.lastAnalog);
-  renderFadeStats(data.lastAnalog);
+function renderAll() {
+  const d = state.data || {};
+  renderHeader(d);
+  renderFearHero(d);
+  renderPositioning(d);
+  renderSpreadTiers(d);
+  renderConfirmations(d);
+  renderRipple(d);
+  renderReversion(d);
+  renderAnalog(d);
+  renderTimeline(d);
+  renderFadeStats(d);
+  renderNews(d);
 }
 
-// ─── Top Bar ─────────────────────────────────────────────────────────────────
+// ─── 1. Header ───────────────────────────────────────────────────────────────
 
-function renderTopBar(data) {
-  const dot = document.getElementById('statusDot');
-  const label = document.getElementById('statusLabel');
-  const updated = document.getElementById('lastUpdated');
-  const marketBadge = document.getElementById('marketStatus');
-  const status = data.overallStatus || 'normal';
-  dot.className = `status-dot ${status}`;
-  label.textContent = status.toUpperCase();
-  if (data.lastFetchTime) updated.textContent = `Updated ${timeAgo(data.lastFetchTime)}`;
-  const ms = data.marketStatus;
-  if (ms) {
-    if (ms.nseOpen) {
-      marketBadge.textContent = `NSE OPEN ${ms.istTime}`;
-      marketBadge.className = 'market-badge open';
-    } else {
-      marketBadge.textContent = `NSE CLOSED ${ms.istTime}`;
-      marketBadge.className = 'market-badge closed';
-    }
-  }
-}
-
-// ─── Fear Temperature ────────────────────────────────────────────────────────
-
-function renderFearThermometer(fearTemp) {
-  if (!fearTemp) return;
-  const fill = document.getElementById('fearTempFill');
-  const score = document.getElementById('fearTempScore');
-  const label = document.getElementById('fearTempLabel');
-  const ctx = document.getElementById('fearTempContext');
-
-  fill.style.width = `${Math.min(fearTemp.score, 100)}%`;
-  fill.style.background = fearTemp.color;
-  score.textContent = `${fearTemp.score}`;
-  label.textContent = fearTemp.label;
-  label.style.color = fearTemp.color;
-  ctx.textContent = fearTemp.historicalContext || '';
-  ctx.classList.toggle('hidden', !fearTemp.historicalContext);
-}
-
-// ─── Regime Banner ───────────────────────────────────────────────────────────
-
-function renderRegimeBanner(regime) {
-  const banner = document.getElementById('regimeBanner');
-  if (!regime || !regime.label) {
-    banner.classList.add('hidden');
+function renderHeader(d) {
+  const pill = document.getElementById('marketStatus');
+  const ms = d.marketStatus;
+  if (!ms) {
+    pill.textContent = '--';
+    pill.className = 'market-pill';
     return;
   }
-  banner.classList.remove('hidden');
-  banner.style.background = regime.color;
-  banner.style.color = regime.action === 'red' ? '#fff' : '#000';
-  banner.innerHTML = `
-    <span class="regime-label">${regime.label}</span>
-    <span class="regime-detail">${regime.regime} (${regime.panicRevertScore} panic, ${regime.structuralScore} structural)</span>
-    <span class="regime-flip">${regime.flipCondition}</span>
-  `;
-}
-
-// ─── Market Positioning Summary ──────────────────────────────────────────────
-
-function renderPositioningSummary(data) {
-  const content = document.getElementById('positionContent');
-  const fearTemp = data.lastFearTemp;
-  const regime = data.lastRegime;
-  const confirmation = data.lastConfirmation;
-  const fii = data.lastFIIStats;
-  const analog = data.lastAnalog;
-  const spreads = data.lastSpreads || {};
-
-  if (!fearTemp && !regime && !confirmation) {
-    content.innerHTML = `<div class="position-loading">Analyzing market conditions...</div>`;
-    return;
-  }
-
-  // Determine primary signal
-  let signal, signalClass, signalText, cardClass;
-  const fearScore = fearTemp?.score || 0;
-  const confScore = confirmation?.score || 0;
-  const confTotal = confirmation?.total || 6;
-  const regimeType = regime?.regime || 'NOISE';
-
-  if (regimeType === 'STRUCTURAL-SHIFT') {
-    signal = 'DEFENSIVE';
-    signalClass = 'defensive';
-    cardClass = 'bearish';
-    signalText = 'Stay defensive — structural shift detected';
-  } else if (regimeType === 'PANIC-REVERT' && confScore >= 4) {
-    signal = 'FADE THE DIP';
-    signalClass = 'fade';
-    cardClass = 'fade';
-    signalText = 'High-conviction fade setup — dislocation confirmed';
-  } else if (confScore >= 4) {
-    signal = 'FADE SETUP';
-    signalClass = 'fade';
-    cardClass = 'fade';
-    signalText = 'Multiple spreads confirming — fade candidate';
-  } else if (fearScore >= 60) {
-    signal = 'WATCH';
-    signalClass = 'neutral';
-    cardClass = 'neutral';
-    signalText = 'Elevated stress — wait for confirmation';
-  } else if (fearScore >= 40) {
-    signal = 'NEUTRAL';
-    signalClass = 'neutral';
-    cardClass = 'neutral';
-    signalText = 'Mild dislocation — no actionable edge';
+  if (ms.nseOpen) {
+    pill.textContent = `LIVE ${ms.istTime || ''}`.trim();
+    pill.className = 'market-pill live';
   } else {
-    signal = 'CALM';
-    signalClass = 'calm';
-    cardClass = 'neutral';
-    signalText = 'Market calm — no fade opportunity';
+    pill.textContent = `NSE CLOSED ${ms.istTime || ''}`.trim();
+    pill.className = 'market-pill';
   }
-
-  // Build reasoning sentence
-  const reasoning = buildReasoning(fearTemp, regime, confirmation, fii, spreads);
-
-  // Confirming/opposing factor chips
-  const factors = buildFactors(confirmation, fii, spreads);
-
-  // Historical analog suggestion
-  let analogHtml = '';
-  if (analog?.event) {
-    const verb = analog.fade_win_rate >= 70 ? 'faded successfully' : 'was volatile';
-    analogHtml = `
-      <div class="position-analog">
-        <span class="position-analog-label">CLOSEST HISTORICAL MATCH</span>
-        ${escapeHtml(analog.event)} (${analog.similarity}% match) — Nifty drew down ${analog.nifty_drawdown}%, recovered in ${analog.nifty_recovery_days} days, ${verb} ${analog.fade_win_rate}% of the time.
-      </div>`;
-  }
-
-  content.innerHTML = `
-    <div class="position-card ${cardClass}">
-      <div class="position-signal">
-        <span class="position-signal-badge ${signalClass}">${signal}</span>
-        <span class="position-signal-text">${signalText}</span>
-      </div>
-      <div class="position-reasoning">${reasoning}</div>
-      ${factors ? `<div class="position-factors">${factors}</div>` : ''}
-      ${analogHtml}
-    </div>
-  `;
 }
 
-function buildReasoning(fearTemp, regime, confirmation, fii, spreads) {
-  const parts = [];
-  if (fearTemp) {
-    parts.push(`Fear temp <b>${fearTemp.score}/100</b> (${fearTemp.label})`);
-  }
+// ─── 2. Fear Hero ────────────────────────────────────────────────────────────
+
+function deriveRegime(score) {
+  if (score == null) return { key: null, label: '--' };
+  if (score <= 25) return { key: 'calm', label: 'CALM' };
+  if (score <= 50) return { key: 'caution', label: 'CAUTION' };
+  if (score <= 75) return { key: 'fear', label: 'FEAR' };
+  return { key: 'extreme', label: 'EXTREME' };
+}
+
+function renderFearHero(d) {
+  const fearTemp = d.lastFearTemp;
+  const confirmation = d.lastConfirmation;
+  const spreads = d.lastSpreads || {};
+
+  const numberEl = document.getElementById('fearNumber');
+  const barFill = document.getElementById('fearBarFill');
+  const badge = document.getElementById('fearRegimeBadge');
+  const confirmLine = document.getElementById('fearConfirmLine');
+  const topSpreadsEl = document.getElementById('fearTopSpreads');
+  const contextEl = document.getElementById('fearContext');
+  const card = document.getElementById('fearSection');
+
+  const score = fearTemp?.score;
+  const regime = deriveRegime(score);
+
+  numberEl.textContent = score == null ? '--' : score;
+  const pct = Math.max(0, Math.min(100, score || 0));
+  barFill.style.width = `${pct}%`;
+  barFill.className = `fear-bar-fill ${regime.key || ''}`;
+
+  badge.textContent = regime.label;
+  badge.className = `regime-badge ${regime.key || ''}`;
+
+  card.classList.toggle('extreme', regime.key === 'extreme');
+
   if (confirmation) {
-    parts.push(`<b>${confirmation.score}/${confirmation.total}</b> confirmations active`);
-  }
-  // Highlight top 2 most elevated spreads
-  const topSpreads = Object.entries(spreads)
-    .filter(([, s]) => (s.absZscore || 0) >= 1.5)
-    .sort((a, b) => (b[1].absZscore || 0) - (a[1].absZscore || 0))
-    .slice(0, 2);
-  if (topSpreads.length > 0) {
-    const names = topSpreads.map(([k, s]) => {
-      const cfg = SPREAD_CONFIG[k];
-      return `${cfg?.short || k} at <b>${s.absZscore.toFixed(1)}σ</b>`;
-    }).join(', ');
-    parts.push(names);
-  }
-  if (fii && fii.source !== 'INSUFFICIENT_DATA' && Math.abs(fii.zscore || 0) >= 1.5) {
-    const dir = fii.zscore < 0 ? 'selling' : 'buying';
-    parts.push(`FII ${dir} at <b>${Math.abs(fii.zscore).toFixed(1)}σ</b>`);
-  }
-  if (parts.length === 0) return 'No elevated spreads detected. Market in normal range.';
-  return parts.join(' · ') + '.';
-}
-
-function buildFactors(confirmation, fii, spreads) {
-  if (!confirmation || !confirmation.checks) return '';
-  return confirmation.checks.map(c => {
-    const cls = c.confirmed ? 'confirming' : 'neutral';
-    const mark = c.confirmed ? '✓' : '○';
-    return `<span class="position-factor ${cls}">${mark} ${escapeHtml(c.name)}</span>`;
-  }).join('');
-}
-
-// ─── Events + Velocity ───────────────────────────────────────────────────────
-
-function renderEvents(events, velocity) {
-  const section = document.getElementById('eventSection');
-  const content = document.getElementById('eventContent');
-  const meter = document.getElementById('velocityMeter');
-
-  // Always keep section visible — show loading / empty state otherwise
-  section.classList.remove('hidden');
-
-  let html = '';
-
-  // Velocity meter
-  if (velocity && velocity.ratio > 1) {
-    meter.classList.remove('hidden');
-    const barWidth = Math.min(velocity.ratio / 10 * 100, 100);
-    meter.innerHTML = `<div class="vel-bar" style="width:${barWidth}%"></div><span class="vel-label">${velocity.ratio.toFixed(1)}x</span>`;
-    if (velocity.alert) {
-      html += `<div class="velocity-alert">${escapeHtml(velocity.message)}</div>`;
-    }
+    confirmLine.textContent = `Confirmations: ${confirmation.score} / ${confirmation.total} active`;
   } else {
-    meter.classList.add('hidden');
+    confirmLine.textContent = 'Confirmations: -- / -- active';
   }
 
-  if (events && events.length > 0) {
-    html += events.slice(0, 5).map(event => {
-      const headline = escapeHtml(event.headline);
-      const headlineEl = event.link
-        ? `<a class="event-headline event-link" href="${escapeHtml(event.link)}" target="_blank" rel="noopener">${headline}</a>`
-        : `<span class="event-headline">${headline}</span>`;
-      return `<div class="event-item ${event.type}">
-        <span class="event-type-badge ${event.type}">${event.type}</span>
-        ${headlineEl}
-        <span class="event-time">${timeAgo(event.timestamp)}</span>
-      </div>`;
-    }).join('');
-  } else if (!html) {
-    html = `<div class="event-loading">No market-moving headlines in the last hour.</div>`;
+  // Top 2 highest |z| spreads
+  const topTwo = Object.entries(spreads)
+    .filter(([k, s]) => SPREAD_CONFIG[k] && s && typeof s.absZscore === 'number')
+    .sort((a, b) => b[1].absZscore - a[1].absZscore)
+    .slice(0, 2);
+  if (topTwo.length > 0) {
+    topSpreadsEl.textContent = topTwo
+      .map(([k, s]) => `${SPREAD_CONFIG[k].short} ${s.absZscore.toFixed(1)}σ`)
+      .join(' · ');
+  } else {
+    topSpreadsEl.textContent = '';
   }
 
-  content.innerHTML = html;
+  contextEl.textContent = fearTemp?.historicalContext || '';
+  contextEl.style.display = fearTemp?.historicalContext ? '' : 'none';
 }
 
-// ─── Ripple Check ────────────────────────────────────────────────────────────
+// ─── 3. Market Positioning ───────────────────────────────────────────────────
 
-function renderRippleCheck(rippleData) {
-  const section = document.getElementById('rippleSection');
-  const content = document.getElementById('rippleContent');
-  if (!rippleData || !rippleData.active) {
-    section.classList.remove('hidden');
-    content.innerHTML = `<div class="ripple-none">No active global ripple detected.</div>`;
-    return;
-  }
-  section.classList.remove('hidden');
-  const r = rippleData;
-  const severity = r.severity || 'LOW';
-  const typeLabel = (r.type || '').replace(/_/g, ' ');
-  let connectionsHtml = '';
-  if (r.connections?.length > 0) {
-    connectionsHtml = r.connections.map(c =>
-      `<span class="ripple-conn degree-${c.degree}">${c.degree} ${c.sector}</span>`
-    ).join('');
-  }
-  content.innerHTML = `
-    <div class="ripple-card severity-${severity}">
-      <div class="ripple-header">
-        <span class="ripple-severity ${severity}">${severity}</span>
-        <span class="ripple-type">${typeLabel}</span>
-      </div>
-      <div class="ripple-event">${escapeHtml(truncate(r.event, 80))}</div>
-      ${connectionsHtml ? `<div class="ripple-connections">${connectionsHtml}</div>` : ''}
-      <div class="ripple-impact">${escapeHtml(r.daily_life_impact || '')}</div>
-      <div class="ripple-watch"><span class="ripple-watch-label">WATCH:</span> ${escapeHtml(r.watch || '')}</div>
-    </div>`;
+const POSITIONING_TEXT = {
+  calm:    'Market calm — no fade opportunity',
+  caution: 'Elevated dislocations — monitor for confirmation',
+  fear:    'Fear rising — fade setups forming, check confirmations',
+  extreme: 'Extreme dislocation — high-probability fade if confirmed'
+};
+
+function renderPositioning(d) {
+  const card = document.getElementById('positionSection');
+  const badge = document.getElementById('positionBadge');
+  const text = document.getElementById('positionText');
+
+  const score = d.lastFearTemp?.score;
+  const regime = deriveRegime(score);
+
+  badge.textContent = regime.label;
+  badge.className = `regime-badge ${regime.key || ''}`;
+  text.textContent = POSITIONING_TEXT[regime.key] || 'Analyzing market conditions...';
+  card.classList.toggle('extreme', regime.key === 'extreme');
 }
 
-// ─── Contagion Chain ─────────────────────────────────────────────────────────
+// ─── 4. Spread Heatmap (tiered) ──────────────────────────────────────────────
 
-function renderContagionChain(events, spreads) {
-  const section = document.getElementById('contagionSection');
-  const content = document.getElementById('contagionContent');
-  if (!contagionPaths || !events || events.length === 0 || !spreads) {
-    section.classList.add('hidden');
-    return;
-  }
-  // Find matching contagion path from active event keywords
-  const topEvent = events[0];
-  const headline = (topEvent.headline || '').toLowerCase();
-  let matchedPath = null;
-  for (const [keyword, pathId] of Object.entries(contagionPaths.keyword_to_path || {})) {
-    if (headline.includes(keyword.toLowerCase())) {
-      matchedPath = contagionPaths.paths[pathId];
-      break;
-    }
-  }
-  if (!matchedPath) {
-    section.classList.add('hidden');
-    return;
-  }
-  section.classList.remove('hidden');
-  const chainHtml = matchedPath.chain.map((step, i) => {
-    const spread = spreads[step.spread_key];
-    const z = spread?.absZscore || 0;
-    const active = z >= 1.5;
-    const cls = active ? 'chain-step active' : 'chain-step';
-    const zLabel = active ? `${z.toFixed(1)}σ` : '';
-    return `<div class="${cls}">
-      <span class="chain-label">${step.step}</span>
-      ${zLabel ? `<span class="chain-z">${zLabel}</span>` : ''}
-    </div>${i < matchedPath.chain.length - 1 ? '<span class="chain-arrow">→</span>' : ''}`;
-  }).join('');
-  content.innerHTML = `<div class="chain-row">${chainHtml}</div>`;
-}
-
-// ─── Heatmap Grid ────────────────────────────────────────────────────────────
-
-function renderHeatmapGrid(spreads, history) {
-  const grid = document.getElementById('heatmapGrid');
-  const noData = document.getElementById('noData');
-  if (!spreads || Object.keys(spreads).length === 0) {
-    grid.innerHTML = '';
-    noData.classList.remove('hidden');
-    return;
-  }
-  noData.classList.add('hidden');
-  const entries = Object.entries(spreads)
-    .filter(([key]) => SPREAD_CONFIG[key])
-    .sort((a, b) => (b[1].absZscore || 0) - (a[1].absZscore || 0));
-
-  grid.innerHTML = entries.map(([key, spread]) => {
-    const config = SPREAD_CONFIG[key];
+function bucketize(spreads) {
+  const tier1 = [], tier2 = [], tier3 = [];
+  for (const [key, spread] of Object.entries(spreads || {})) {
+    if (!SPREAD_CONFIG[key] || !spread) continue;
     const z = spread.absZscore || 0;
-    const status = spread.status || 'normal';
-    const hasWeight = (config.weight || 0) > 0;
-    const tileClass = `heatmap-tile ${status}${hasWeight ? ' weighted' : ''}`;
-    const currentVal = formatValue(spread.value, config.format);
-    const quality = spread.data_quality || 'LIVE';
-    const qualityClass = quality === 'ESTIMATED' ? 'quality-est' : 'quality-live';
+    const entry = { key, spread };
+    if (z >= 5) tier1.push(entry);
+    else if (z >= 3) tier2.push(entry);
+    else tier3.push(entry);
+  }
+  const bySigmaDesc = (a, b) => (b.spread.absZscore || 0) - (a.spread.absZscore || 0);
+  tier1.sort(bySigmaDesc);
+  tier2.sort(bySigmaDesc);
+  tier3.sort(bySigmaDesc);
+  return { tier1, tier2, tier3 };
+}
 
-    // Mini sparkline
-    const sparkHtml = renderSparkline(history?.[key] || [], status);
+function computeTrendPct(history) {
+  if (!Array.isArray(history) || history.length < 2) return null;
+  const last = history[history.length - 1]?.value;
+  const first = history[0]?.value;
+  if (first == null || last == null || first === 0) return null;
+  return ((last - first) / Math.abs(first)) * 100;
+}
 
-    return `<div class="${tileClass}" title="${config.name}">
-      <div class="tile-header">
-        <span class="tile-name">${config.short}</span>
-        <span class="tile-quality ${qualityClass}">${quality}</span>
+function renderSpreadTiers(d) {
+  const spreads = d.lastSpreads || {};
+  const history = d.spreadHistory || {};
+  const { tier1, tier2, tier3 } = bucketize(spreads);
+
+  const t1 = document.getElementById('tier1Grid');
+  const t2 = document.getElementById('tier2Grid');
+  const t3 = document.getElementById('tier3Card');
+
+  t1.innerHTML = tier1.map(e => spreadCardHtml(e, 'critical', history[e.key])).join('');
+  t2.innerHTML = tier2.map(e => spreadCardHtml(e, 'elevated', history[e.key])).join('');
+  t3.innerHTML = tier3.map(e => spreadRowHtml(e)).join('');
+
+  // Click-to-expand for tier 1 / tier 2 cards
+  [t1, t2].forEach(container => {
+    container.querySelectorAll('.spread-card').forEach(el => {
+      el.addEventListener('click', () => {
+        const key = el.dataset.key;
+        if (state.expandedSpreads.has(key)) state.expandedSpreads.delete(key);
+        else state.expandedSpreads.add(key);
+        renderSpreadTiers(state.data || {});
+      });
+    });
+  });
+}
+
+function spreadCardHtml({ key, spread }, tierClass, hist) {
+  const cfg = SPREAD_CONFIG[key];
+  const value = formatValue(spread.value, cfg.format);
+  const z = spread.absZscore || 0;
+  const quality = (spread.data_quality || 'LIVE').toLowerCase();
+  const qLabel = (spread.data_quality || 'LIVE').toUpperCase();
+  const expanded = state.expandedSpreads.has(key);
+
+  const trend5 = computeTrendPct((hist || []).slice(-5));
+  const trend20 = computeTrendPct((hist || []).slice(-20));
+  const title = [
+    cfg.name,
+    trend5 != null ? `5d: ${trend5 >= 0 ? '+' : ''}${trend5.toFixed(1)}%` : null,
+    trend20 != null ? `20d: ${trend20 >= 0 ? '+' : ''}${trend20.toFixed(1)}%` : null
+  ].filter(Boolean).join('\n');
+
+  let expandHtml = '';
+  if (expanded) {
+    expandHtml = `<div class="spread-expand">${renderSparkline(hist || [], tierClass)}</div>`;
+  }
+
+  return `
+    <div class="spread-card ${tierClass}" data-key="${escapeHtml(key)}" title="${escapeHtml(title)}">
+      <div class="spread-card-head">
+        <span class="spread-card-name">${escapeHtml(cfg.short)}</span>
+        <span class="quality-badge ${quality}">${escapeHtml(qLabel)}</span>
       </div>
-      <div class="tile-value ${status}">${currentVal}</div>
-      <div class="tile-z">${z.toFixed(1)}σ</div>
-      <div class="tile-spark">${sparkHtml}</div>
-      ${spread.regime ? `<div class="tile-regime">${spread.regime}</div>` : ''}
+      <div class="spread-card-value">${value}</div>
+      <div class="spread-card-sigma">${z.toFixed(1)}σ</div>
+      ${expandHtml}
     </div>`;
-  }).join('');
 }
 
-// ─── Confirmation Dots ───────────────────────────────────────────────────────
-
-function renderConfirmationDots(confirmation) {
-  const container = document.getElementById('confirmationDots');
-  if (!confirmation) { container.innerHTML = ''; return; }
-  const dots = confirmation.checks.map(c =>
-    `<span class="conf-dot ${c.confirmed ? 'filled' : 'empty'}" title="${c.name}">${c.confirmed ? '●' : '○'}</span>`
-  ).join('');
-  const labelClass = confirmation.signal === 'FADE' ? 'conf-fade' : confirmation.signal === 'WATCH' ? 'conf-watch' : '';
-  container.innerHTML = `${dots}${confirmation.label ? `<span class="conf-label ${labelClass}">${confirmation.label}</span>` : ''}`;
+function spreadRowHtml({ key, spread }) {
+  const cfg = SPREAD_CONFIG[key];
+  const value = formatValue(spread.value, cfg.format);
+  const z = spread.absZscore || 0;
+  return `
+    <div class="spread-row">
+      <span class="spread-row-name">${escapeHtml(cfg.short)}</span>
+      <span class="spread-row-right">
+        <span class="spread-row-value">${value}</span>
+        <span class="spread-row-sigma">${z.toFixed(1)}σ</span>
+      </span>
+    </div>`;
 }
 
-// ─── Reversion Countdowns ────────────────────────────────────────────────────
+// ─── 5. Confirmations ────────────────────────────────────────────────────────
 
-function renderReversionCountdowns(countdowns) {
-  const section = document.getElementById('reversionSection');
-  const content = document.getElementById('reversionContent');
-  if (!countdowns || Object.keys(countdowns).length === 0) {
-    section.classList.add('hidden');
+function renderConfirmations(d) {
+  const pillsEl = document.getElementById('confirmPills');
+  const summaryEl = document.getElementById('confirmSummary');
+  const confirmation = d.lastConfirmation;
+  if (!confirmation || !confirmation.checks) {
+    pillsEl.innerHTML = '';
+    summaryEl.textContent = 'Awaiting data';
     return;
   }
-  section.classList.remove('hidden');
-  content.innerHTML = Object.entries(countdowns).map(([key, cd]) => {
-    const config = SPREAD_CONFIG[key];
-    const pct = Math.min(cd.progress * 100, 100);
-    const barColor = cd.overdue ? '#da3633' : '#3fb950';
-    return `<div class="reversion-item">
-      <div class="reversion-header">
-        <span class="reversion-name">${config?.short || key}</span>
-        <span class="reversion-status ${cd.overdue ? 'overdue' : ''}">${cd.status}</span>
-      </div>
-      <div class="reversion-bar"><div class="reversion-fill" style="width:${pct}%;background:${barColor}"></div></div>
-      <div class="reversion-text">${cd.display}</div>
-    </div>`;
-  }).join('');
+  pillsEl.innerHTML = confirmation.checks
+    .map(c => `<span class="confirm-pill ${c.confirmed ? 'active' : ''}">${escapeHtml(c.name)}</span>`)
+    .join('');
+  const met = confirmation.score >= 3;
+  summaryEl.textContent = `${confirmation.score} of ${confirmation.total} active — ${met ? 'confirmation threshold met' : 'insufficient for high-confidence fade'}`;
 }
 
-// ─── FII Section ─────────────────────────────────────────────────────────────
+// ─── 6. Global Ripple Check ──────────────────────────────────────────────────
 
-function renderFIISection(fiiStats) {
-  const section = document.getElementById('fiiSection');
-  const content = document.getElementById('fiiContent');
-  if (!fiiStats || fiiStats.source === 'INSUFFICIENT_DATA') {
-    section.classList.add('hidden');
+function renderRipple(d) {
+  const card = document.getElementById('rippleCard');
+  const r = d.lastRippleCheck;
+  if (!r || !r.active) {
+    card.className = 'card ripple-card';
+    card.innerHTML = `<div class="ripple-empty">No active global ripple detected.</div>`;
     return;
   }
-  section.classList.remove('hidden');
-  const zClass = Math.abs(fiiStats.zscore) >= 2 ? 'z-alert' : Math.abs(fiiStats.zscore) >= 1.5 ? 'z-warning' : 'z-normal';
-  const sparkHtml = renderSparkline(fiiStats.sparkline || [], Math.abs(fiiStats.zscore) >= 2 ? 'alert' : 'normal');
-  content.innerHTML = `
-    <div class="fii-grid">
-      <div class="fii-stat"><span class="fii-label">Today</span><span class="fii-value">${fiiStats.today_net > 0 ? '+' : ''}${fiiStats.today_net} Cr</span></div>
-      <div class="fii-stat"><span class="fii-label">3-Day</span><span class="fii-value">${fiiStats.cumulative_3d > 0 ? '+' : ''}${fiiStats.cumulative_3d} Cr</span></div>
-      <div class="fii-stat"><span class="fii-label">90d Mean</span><span class="fii-value">${fiiStats.mean_90d} Cr</span></div>
-      <div class="fii-stat"><span class="fii-label">Z-Score</span><span class="fii-value ${zClass}">${fiiStats.zscore > 0 ? '+' : ''}${fiiStats.zscore}σ</span></div>
+
+  const severityMap = {
+    LOW: 'low',
+    MODERATE: 'moderate',
+    HIGH: 'high',
+    CRITICAL: 'high'
+  };
+  const sevKey = severityMap[r.severity] || 'low';
+  const category = (r.type || '').replace(/_/g, ' ').toUpperCase();
+
+  const degreeToRank = { '1st': 1, '2nd': 2, '3rd': 3 };
+  const sectorsHtml = (r.connections || [])
+    .map(c => `<span class="sector-chip rank-${degreeToRank[c.degree] || 3}">${escapeHtml(c.sector)}</span>`)
+    .join('');
+
+  card.className = 'card ripple-card';
+  card.innerHTML = `
+    <div class="ripple-head">
+      <span class="regime-badge ${sevKey}">${escapeHtml(r.severity || '')}</span>
+      <span class="ripple-category">${escapeHtml(category)}</span>
     </div>
-    <div class="fii-spark">${sparkHtml}</div>
-    ${fiiStats.historical_context ? `<div class="fii-context">${fiiStats.historical_context}</div>` : ''}
-    <div class="fii-source">Source: ${fiiStats.source} | Sell streak: ${fiiStats.consecutive_sell_days}d</div>
+    <div class="ripple-headline">${escapeHtml(truncate(r.event || '', 120))}</div>
+    ${sectorsHtml ? `<div class="ripple-sectors">${sectorsHtml}</div>` : ''}
+    ${r.watch ? `<div class="ripple-watch">WATCH: ${escapeHtml(r.watch)}</div>` : ''}
+    ${r.daily_life_impact ? `<div class="ripple-context">${escapeHtml(r.daily_life_impact)}</div>` : ''}
   `;
 }
 
-// ─── Historical Analog ───────────────────────────────────────────────────────
+// ─── 7. Reversion Countdown ──────────────────────────────────────────────────
 
-function renderAnalog(analog) {
-  const section = document.getElementById('analogSection');
-  const content = document.getElementById('analogContent');
-  if (!analog?.event) { section.classList.add('hidden'); return; }
-  section.classList.remove('hidden');
-  const drawdownClass = analog.nifty_drawdown < 0 ? 'negative' : 'positive';
-  const winRateClass = analog.fade_win_rate >= 75 ? 'good' : 'caution';
-  content.innerHTML = `
-    <div class="analog-match">
-      <div class="analog-header">
-        <span class="analog-event-name">${escapeHtml(analog.event)}</span>
-        <span class="analog-similarity">${analog.similarity}% match</span>
-      </div>
-      <div class="analog-details">
-        <div class="analog-detail-row"><span class="analog-label">Date</span><span class="analog-value">${analog.date}</span></div>
-        <div class="analog-detail-row"><span class="analog-label">Type</span><span class="analog-value">${analog.type}</span></div>
-        <div class="analog-detail-row"><span class="analog-label">Nifty Drawdown</span><span class="analog-value ${drawdownClass}">${analog.nifty_drawdown}%</span></div>
-        <div class="analog-detail-row"><span class="analog-label">Recovery</span><span class="analog-value">${analog.nifty_recovery_days} days</span></div>
-        <div class="analog-detail-row"><span class="analog-label">Fade Win Rate</span><span class="analog-value ${winRateClass}">${analog.fade_win_rate}%</span></div>
-      </div>
-      ${analog.data_limited ? '<div class="analog-notes">Limited historical data for this event.</div>' : ''}
-      ${analog.notes ? `<div class="analog-notes">${escapeHtml(analog.notes)}</div>` : ''}
-    </div>
-    ${analog.runner_up ? `<div class="runner-up">Runner-up: ${escapeHtml(analog.runner_up.event)} (${analog.runner_up.similarity}%)</div>` : ''}`;
-}
+function renderReversion(d) {
+  const card = document.getElementById('reversionCard');
+  const countdowns = d.lastReversionCountdowns || {};
+  const entries = Object.entries(countdowns);
 
-// ─── Timeline ────────────────────────────────────────────────────────────────
-
-function renderTimeline(analog) {
-  const section = document.getElementById('timelineSection');
-  const content = document.getElementById('timelineContent');
-  // Load historical events for timeline
-  fetch(chrome.runtime.getURL('data/historical-events.json'))
-    .then(r => r.json())
-    .then(data => {
-      const events = data.events || [];
-      if (events.length === 0) { section.classList.add('hidden'); return; }
-      section.classList.remove('hidden');
-      const now = new Date();
-      const minYear = 1991;
-      const maxYear = now.getFullYear() + 1;
-      const range = maxYear - minYear;
-      const analogIds = analog ? [analog.event_id, analog.runner_up?.event_id].filter(Boolean) : [];
-
-      let dotsHtml = events.map(evt => {
-        const year = parseInt(evt.date?.substring(0, 4) || '2000');
-        const pct = ((year - minYear) / range * 100).toFixed(1);
-        const isAnalog = analogIds.includes(evt.id);
-        const cls = `tl-dot ${evt.type}${isAnalog ? ' analog-match' : ''}`;
-        return `<div class="${cls}" style="left:${pct}%" title="${evt.event} (${evt.date})\nDrawdown: ${evt.nifty_drawdown}%\nFade: ${evt.fade_win_rate}%"></div>`;
-      }).join('');
-
-      // YOU ARE HERE marker
-      const nowPct = ((now.getFullYear() - minYear) / range * 100).toFixed(1);
-      dotsHtml += `<div class="tl-now" style="left:${nowPct}%" title="YOU ARE HERE"></div>`;
-
-      content.innerHTML = `
-        <div class="timeline-bar">
-          <div class="tl-track">${dotsHtml}</div>
-          <div class="tl-labels">
-            <span>1991</span><span>2000</span><span>2010</span><span>2020</span><span>NOW</span>
-          </div>
-        </div>`;
-    })
-    .catch(() => section.classList.add('hidden'));
-}
-
-// ─── Fade Stats ──────────────────────────────────────────────────────────────
-
-function renderFadeStats(analog) {
-  const section = document.getElementById('statsSection');
-  const content = document.getElementById('statsContent');
-  if (!analog?.fade_stats || Object.keys(analog.fade_stats).length === 0) {
-    section.classList.add('hidden');
+  if (entries.length === 0) {
+    card.innerHTML = `<div class="reversion-empty">No active fade signals.</div>`;
     return;
   }
-  section.classList.remove('hidden');
-  content.innerHTML = '';
-  for (const [key, stats] of Object.entries(analog.fade_stats)) {
-    const config = SPREAD_CONFIG[key];
-    if (!config) continue;
-    const winClass = stats.avg_fade_win_rate >= 75 ? 'good' : 'caution';
-    content.innerHTML += `
-      <div class="stat-card">
-        <div class="stat-spread-name">${config.name}</div>
-        <div class="stat-row"><span class="stat-label">Avg Reversion</span><span class="stat-value">${stats.avg_reversion_days} days</span></div>
-        <div class="stat-row"><span class="stat-label">Fade Win Rate</span><span class="stat-value ${winClass}">${stats.avg_fade_win_rate}%</span></div>
-        <div class="stat-row"><span class="stat-label">Sample Size</span><span class="stat-value">${stats.sample_size} events</span></div>
+
+  card.innerHTML = entries.map(([key, cd]) => {
+    const cfg = SPREAD_CONFIG[key];
+    const name = cfg?.short || cd.spreadLabel || key;
+    const overdue = cd.overdue;
+    const pct = Math.max(0, Math.min(100, (cd.progress || 0) * 100));
+    const avg = cd.avgReversionDays;
+    const avgLabel = avg == null ? 'N/A' : `${avg}`;
+    const daysPassed = Math.round(cd.daysPassed || 0);
+    const subText = avg == null
+      ? `Day ${daysPassed} of avg window: N/A`
+      : `Day ${daysPassed} of avg ${avgLabel}-day window`;
+
+    return `
+      <div class="reversion-row">
+        <div class="reversion-row-top">
+          <span class="reversion-name">${escapeHtml(name)}</span>
+          <span class="reversion-active-badge ${overdue ? 'overdue' : ''}">${overdue ? 'OVERDUE' : 'ACTIVE'}</span>
+        </div>
+        <div class="reversion-bar-track"><div class="reversion-bar-fill ${overdue ? 'overdue' : ''}" style="width:${pct}%"></div></div>
+        <div class="reversion-sub">${subText}</div>
       </div>`;
+  }).join('');
+}
+
+// ─── 8. Historical Match ─────────────────────────────────────────────────────
+
+function renderAnalog(d) {
+  const card = document.getElementById('analogCard');
+  const analog = d.lastAnalog;
+  if (!analog || !analog.event) {
+    card.innerHTML = `<div class="stats-empty">No historical match yet.</div>`;
+    card.onclick = null;
+    return;
+  }
+
+  const runner = analog.runner_up;
+  const showRunnerUp = state.analogViewRunnerUp && runner;
+  const display = showRunnerUp
+    ? {
+        event: runner.event,
+        similarity: runner.similarity,
+        type: runner.type,
+        date: analog.date,
+        nifty_drawdown: analog.nifty_drawdown,
+        nifty_recovery_days: analog.nifty_recovery_days,
+        fade_win_rate: analog.fade_win_rate,
+        notes: 'Runner-up match details.',
+        isRunnerUp: true
+      }
+    : analog;
+
+  const dd = display.nifty_drawdown;
+  const ddClass = typeof dd === 'number' && dd < 0 ? 'negative' : '';
+  const runnerLine = runner
+    ? (showRunnerUp
+        ? `<div class="analog-runner">Click to return to primary: ${escapeHtml(analog.event)}</div>`
+        : `<div class="analog-runner">Runner-up: ${escapeHtml(runner.event)} (${runner.similarity}% match)</div>`)
+    : '';
+
+  card.innerHTML = `
+    <div class="analog-top">
+      <span class="analog-name">${escapeHtml(display.event || '')}</span>
+      <span class="analog-match-pill">${display.similarity || 0}% match</span>
+    </div>
+    <div class="analog-grid">
+      <div>
+        <div class="analog-cell-label">Date</div>
+        <div class="analog-cell-value">${escapeHtml(display.date || '--')}</div>
+      </div>
+      <div>
+        <div class="analog-cell-label">Drawdown</div>
+        <div class="analog-cell-value ${ddClass}">${dd != null ? dd + '%' : '--'}</div>
+      </div>
+      <div>
+        <div class="analog-cell-label">Recovery</div>
+        <div class="analog-cell-value">${display.nifty_recovery_days != null ? display.nifty_recovery_days + ' days' : '--'}</div>
+      </div>
+    </div>
+    <div class="analog-winrate">
+      <span class="analog-winrate-label">Fade win rate</span>
+      <span class="analog-winrate-value">${display.fade_win_rate != null ? display.fade_win_rate + '%' : '--'}</span>
+    </div>
+    ${display.notes ? `<div class="analog-context">${escapeHtml(display.notes)}</div>` : ''}
+    ${runnerLine}
+  `;
+
+  card.onclick = runner ? () => {
+    state.analogViewRunnerUp = !state.analogViewRunnerUp;
+    renderAnalog(state.data || {});
+  } : null;
+}
+
+// ─── 9. Event Timeline ───────────────────────────────────────────────────────
+
+let timelineEventsCache = null;
+
+async function renderTimeline(d) {
+  const card = document.getElementById('timelineCard');
+  if (!timelineEventsCache) {
+    try {
+      const resp = await fetch(chrome.runtime.getURL('data/historical-events.json'));
+      const json = await resp.json();
+      timelineEventsCache = json.events || [];
+    } catch {
+      timelineEventsCache = [];
+    }
+  }
+  const events = timelineEventsCache;
+  if (events.length === 0) {
+    card.innerHTML = `<div class="stats-empty">Timeline unavailable.</div>`;
+    return;
+  }
+
+  const analog = d.lastAnalog;
+  const analogIds = analog ? [analog.event_id, analog.runner_up?.event_id].filter(Boolean) : [];
+  const now = new Date();
+  const minYear = 1991;
+  const maxYear = now.getFullYear() + 1;
+  const range = maxYear - minYear;
+
+  const dotsHtml = events.map(evt => {
+    const year = parseInt((evt.date || '').substring(0, 4), 10);
+    if (!year) return '';
+    const pct = ((year - minYear) / range * 100).toFixed(1);
+    const isAnalog = analogIds.includes(evt.id);
+    const cls = `tl-dot ${evt.type || ''}${isAnalog ? ' analog-match' : ''}`;
+    const title = `${evt.event || ''} (${evt.date || ''})${evt.nifty_drawdown != null ? '\nDrawdown: ' + evt.nifty_drawdown + '%' : ''}${evt.fade_win_rate != null ? '\nFade win rate: ' + evt.fade_win_rate + '%' : ''}`;
+    return `<div class="${cls}" style="left:${pct}%" title="${escapeHtml(title)}"></div>`;
+  }).join('');
+
+  const nowPct = ((now.getFullYear() + (now.getMonth() / 12) - minYear) / range * 100).toFixed(1);
+
+  card.innerHTML = `
+    <div class="timeline-bar">
+      ${dotsHtml}
+      <div class="tl-now" style="left:${nowPct}%"></div>
+    </div>
+    <div class="tl-labels"><span>1991</span><span>2000</span><span>2010</span><span>2020</span><span>NOW</span></div>
+  `;
+}
+
+// ─── 10. Fade Statistics ─────────────────────────────────────────────────────
+
+function renderFadeStats(d) {
+  const card = document.getElementById('statsCard');
+  const analog = d.lastAnalog;
+  const fadeStats = analog?.fade_stats || {};
+  const entries = Object.entries(fadeStats);
+
+  if (entries.length === 0) {
+    card.innerHTML = `<div class="stats-empty">No fade statistics available.</div>`;
+    return;
+  }
+
+  // Pick highest-sample / highest-win-rate spread
+  entries.sort((a, b) => (b[1].avg_fade_win_rate || 0) - (a[1].avg_fade_win_rate || 0));
+  const [key, stats] = entries[0];
+  const cfg = SPREAD_CONFIG[key];
+  const name = cfg?.name || key;
+  const lowSample = (stats.sample_size || 0) < 10;
+
+  card.innerHTML = `
+    <div class="stats-title">${escapeHtml(name)}</div>
+    <div class="stats-grid">
+      <div>
+        <div class="stats-cell-label">Avg reversion</div>
+        <div class="stats-cell-value">${stats.avg_reversion_days != null ? stats.avg_reversion_days + ' days' : '--'}</div>
+      </div>
+      <div>
+        <div class="stats-cell-label">Fade win rate</div>
+        <div class="stats-cell-value positive">${stats.avg_fade_win_rate != null ? stats.avg_fade_win_rate + '%' : '--'}</div>
+      </div>
+      <div>
+        <div class="stats-cell-label">Sample size</div>
+        <div class="stats-cell-value">${stats.sample_size != null ? stats.sample_size : '--'}</div>
+      </div>
+    </div>
+    ${lowSample ? `<div class="stats-warn">Low sample size — treat with caution</div>` : ''}
+  `;
+}
+
+// ─── 11. Live News ───────────────────────────────────────────────────────────
+
+function classifyNewsRelevance(event) {
+  const type = (event.type || '').toUpperCase();
+  const headline = event.headline || '';
+  if (type === 'MAC' || type === 'CRISIS') return 'high';
+  if (HIGH_RELEVANCE_REGEX.test(headline)) return 'high';
+  if (type === 'GEO' || type === 'SUPPLY') return 'medium';
+  return 'low';
+}
+
+function renderNews(d) {
+  const card = document.getElementById('newsCard');
+  const velocityEl = document.getElementById('velocityIndicator');
+
+  // Velocity indicator in section header
+  const velocity = d.lastVelocity;
+  if (velocity?.alert && velocity.ratio > 1) {
+    velocityEl.textContent = `${velocity.ratio.toFixed(1)}× velocity`;
+  } else {
+    velocityEl.textContent = '';
+  }
+
+  const events = d.activeEvents || [];
+  if (events.length === 0) {
+    card.innerHTML = `<div class="news-empty">No market-moving headlines in the last hour.</div>`;
+    return;
+  }
+
+  const tagged = events.map(e => ({ ...e, _relevance: classifyNewsRelevance(e) }));
+  const priority = { high: 0, medium: 1, low: 2 };
+  tagged.sort((a, b) => {
+    const pd = priority[a._relevance] - priority[b._relevance];
+    if (pd !== 0) return pd;
+    return (b.timestamp || 0) - (a.timestamp || 0);
+  });
+
+  const limit = state.newsExpanded ? 15 : 5;
+  const visible = tagged.slice(0, limit);
+  const hasMore = tagged.length > limit;
+
+  const rowsHtml = visible.map(ev => {
+    const headlineEl = ev.link
+      ? `<a class="news-headline" href="${escapeHtml(ev.link)}" target="_blank" rel="noopener">${escapeHtml(ev.headline || '')}</a>`
+      : `<span class="news-headline">${escapeHtml(ev.headline || '')}</span>`;
+    return `
+      <div class="news-row">
+        <div class="news-accent ${ev._relevance}"></div>
+        <div class="news-body">
+          ${headlineEl}
+          <div class="news-meta">
+            <span class="news-source">${escapeHtml(ev.source || '')}</span>
+            <span class="news-category ${ev._relevance}">${escapeHtml(ev.type || '')}</span>
+            <span class="news-time">${timeAgo(ev.timestamp)}</span>
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+
+  const moreBtn = hasMore && !state.newsExpanded
+    ? `<button class="news-more" id="newsMoreBtn">Show more (${tagged.length - limit})</button>`
+    : '';
+
+  card.innerHTML = rowsHtml + moreBtn;
+
+  const moreEl = document.getElementById('newsMoreBtn');
+  if (moreEl) {
+    moreEl.addEventListener('click', () => {
+      state.newsExpanded = true;
+      renderNews(state.data || {});
+    });
   }
 }
 
 // ─── Sparklines ──────────────────────────────────────────────────────────────
 
-function renderSparkline(dataPoints, status) {
-  if (!dataPoints || dataPoints.length < 2) return '<span class="spark-empty">--</span>';
-  const points = dataPoints.slice(-30);
+function renderSparkline(dataPoints, tierClass) {
+  if (!dataPoints || dataPoints.length < 2) return '<span class="hint-label">No history yet</span>';
+  const points = dataPoints.slice(-20);
   const values = points.map(p => p.value);
   const min = Math.min(...values);
   const max = Math.max(...values);
   const range = max - min || 1;
-  const w = 44, h = 16, pad = 1;
-  const pathPoints = values.map((v, i) => {
+  const w = 360, h = 60, pad = 4;
+  const path = values.map((v, i) => {
     const x = pad + (i / (values.length - 1)) * (w - 2 * pad);
     const y = h - pad - ((v - min) / range) * (h - 2 * pad);
     return `${x.toFixed(1)},${y.toFixed(1)}`;
   });
-  const colors = { normal: '#6e7681', elevated: '#d29922', warning: '#db6d28', alert: '#f85149', extreme: '#da3633' };
-  const color = colors[status] || colors.normal;
-  return `<svg class="sparkline-svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
-    <polyline fill="none" stroke="${color}" stroke-width="1.2" stroke-linecap="round" points="${pathPoints.join(' ')}" />
-    <circle cx="${pathPoints[pathPoints.length - 1].split(',')[0]}" cy="${pathPoints[pathPoints.length - 1].split(',')[1]}" r="1.5" fill="${color}" />
-  </svg>`;
+
+  const strokeClass = tierClass || '';
+  const color = strokeClass === 'critical'
+    ? 'var(--critical)'
+    : strokeClass === 'elevated'
+    ? 'var(--elevated)'
+    : 'var(--text-secondary)';
+
+  return `
+    <svg class="sparkline-svg" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
+      <polyline fill="none" stroke="${color}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" points="${path.join(' ')}" />
+    </svg>`;
 }
 
 // ─── Utilities ───────────────────────────────────────────────────────────────
@@ -609,15 +679,15 @@ function renderSparkline(dataPoints, status) {
 function formatValue(value, format) {
   if (value === null || value === undefined) return '--';
   switch (format) {
-    case 'pts': return `${value >= 0 ? '+' : ''}${Math.round(value)}`;
-    case 'inr': return `₹${Math.abs(value).toFixed(0)}`;
-    case 'inr3': return `₹${value.toFixed(3)}`;
-    case 'ratio': return value.toFixed(3);
-    case 'level': return value.toFixed(1);
-    case 'pct': return `${value >= 0 ? '+' : ''}${value.toFixed(2)}%`;
-    case 'bps': return `${Math.round(value)} bps`;
+    case 'pts':    return `${value >= 0 ? '+' : ''}${Math.round(value)}`;
+    case 'inr':    return `₹${Math.abs(value).toFixed(0)}`;
+    case 'inr3':   return `₹${value.toFixed(3)}`;
+    case 'ratio':  return value.toFixed(3);
+    case 'level':  return value.toFixed(1);
+    case 'pct':    return `${value >= 0 ? '+' : ''}${value.toFixed(2)}%`;
+    case 'bps':    return `${Math.round(value)} bps`;
     case 'zscore': return `${value >= 0 ? '+' : ''}${value.toFixed(2)}σ`;
-    default: return String(value);
+    default:       return String(value);
   }
 }
 
@@ -636,8 +706,8 @@ function truncate(str, len) {
 }
 
 function escapeHtml(text) {
-  if (!text) return '';
+  if (text == null) return '';
   const div = document.createElement('div');
-  div.textContent = text;
+  div.textContent = String(text);
   return div.innerHTML;
 }

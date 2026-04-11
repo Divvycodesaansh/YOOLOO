@@ -1,144 +1,148 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=420">
   <link rel="stylesheet" href="popup.css">
-  <title>Dislocation Radar India</title>
+  <title>Dislocation Radar</title>
 </head>
 <body>
-  <!-- Top Bar with Fear Temperature -->
+  <!-- SVG icon sprite (all 16×16, stroke currentColor, stroke-width 1.5) -->
+  <svg class="sprite" width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <symbol id="icon-target" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="8" cy="8" r="6"/><circle cx="8" cy="8" r="3"/><circle cx="8" cy="8" r="0.5" fill="currentColor"/>
+      </symbol>
+      <symbol id="icon-grid" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="2" y="2" width="5" height="5" rx="0.5"/><rect x="9" y="2" width="5" height="5" rx="0.5"/>
+        <rect x="2" y="9" width="5" height="5" rx="0.5"/><rect x="9" y="9" width="5" height="5" rx="0.5"/>
+      </symbol>
+      <symbol id="icon-check" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="3,8 6.5,11.5 13,4.5"/>
+      </symbol>
+      <symbol id="icon-globe" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="8" cy="8" r="6"/><line x1="2" y1="8" x2="14" y2="8"/><ellipse cx="8" cy="8" rx="3" ry="6"/>
+      </symbol>
+      <symbol id="icon-clock" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="8" cy="8" r="6"/><polyline points="8,4.5 8,8 10.5,9.5"/>
+      </symbol>
+      <symbol id="icon-search" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="7" cy="7" r="4.5"/><line x1="10.5" y1="10.5" x2="14" y2="14"/>
+      </symbol>
+      <symbol id="icon-calendar" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="2" y="3" width="12" height="11" rx="1"/><line x1="2" y1="6.5" x2="14" y2="6.5"/>
+        <line x1="5.5" y1="2" x2="5.5" y2="4.5"/><line x1="10.5" y1="2" x2="10.5" y2="4.5"/>
+      </symbol>
+      <symbol id="icon-chart" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="2,12 6,7 9,10 14,3"/><polyline points="10,3 14,3 14,7"/>
+      </symbol>
+      <symbol id="icon-bolt" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <polygon points="9,2 3,9 8,9 7,14 13,7 8,7"/>
+      </symbol>
+      <symbol id="icon-gear" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="8" cy="8" r="2.5"/>
+        <path d="M8 1.5v2 M8 12.5v2 M1.5 8h2 M12.5 8h2 M3.3 3.3l1.4 1.4 M11.3 11.3l1.4 1.4 M3.3 12.7l1.4-1.4 M11.3 4.7l1.4-1.4"/>
+      </symbol>
+      <symbol id="icon-refresh" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M13.5 4.5A6 6 0 1 0 14 10"/><polyline points="14,2 14,5 11,5"/>
+      </symbol>
+    </defs>
+  </svg>
+
+  <!-- 1. Header bar -->
   <header id="topBar">
-    <div class="title-row">
-      <h1>DISLOCATION RADAR <span class="flag">IN</span></h1>
-      <div class="status-group">
-        <span id="statusDot" class="status-dot"></span>
-        <span id="statusLabel">Loading...</span>
-      </div>
+    <div class="brand">Dislocation Radar</div>
+    <div id="marketStatus" class="market-pill">--</div>
+    <div class="header-actions">
+      <button id="settingsBtn" class="icon-btn" title="Settings" aria-label="Settings"><svg width="14" height="14"><use href="#icon-gear"/></svg></button>
+      <button id="refreshBtn" class="icon-btn" title="Refresh" aria-label="Refresh"><svg width="14" height="14"><use href="#icon-refresh"/></svg></button>
     </div>
-    <div class="meta-row">
-      <span id="lastUpdated">--</span>
-      <span id="marketStatus" class="market-badge">--</span>
-      <button id="refreshBtn" class="icon-btn" title="Force refresh">&#x21bb;</button>
-    </div>
-    <!-- Fear Temperature Thermometer -->
-    <div id="fearTempBar" class="fear-temp-bar">
-      <span class="fear-temp-pre">FEAR</span>
-      <div class="fear-temp-gauge">
-        <div id="fearTempFill" class="fear-temp-fill" style="width:0%"></div>
-        <span id="fearTempScore" class="fear-temp-score">--</span>
-      </div>
-      <span id="fearTempLabel" class="fear-temp-label">--</span>
-    </div>
-    <div id="fearTempContext" class="fear-temp-context"></div>
   </header>
 
-  <!-- Regime Banner -->
-  <div id="regimeBanner" class="regime-banner hidden"></div>
+  <main>
+    <!-- 2. Fear Temperature (hero) -->
+    <section id="fearSection" class="card fear-hero">
+      <div class="fear-top">
+        <span class="muted-label">Fear temp</span>
+        <span id="fearRegimeBadge" class="regime-badge">--</span>
+      </div>
+      <div class="fear-number-row">
+        <span id="fearNumber" class="fear-number">--</span>
+        <span class="fear-denom">/ 100</span>
+      </div>
+      <div class="fear-bar-track"><div id="fearBarFill" class="fear-bar-fill"></div></div>
+      <div class="fear-footer">
+        <span id="fearConfirmLine" class="muted-label">Confirmations: -- / -- active</span>
+        <span id="fearTopSpreads" class="hint-label">--</span>
+      </div>
+      <div id="fearContext" class="hint-italic">--</div>
+    </section>
 
-  <!-- POSITIONING SUMMARY — the actionable takeaway -->
-  <section id="positionSection" class="section position-section">
-    <div class="section-header">
-      <span class="section-icon">&#x1F3AF;</span>
-      <span class="section-title">MARKET POSITIONING</span>
-    </div>
-    <div id="positionContent" class="position-content">
-      <div class="position-loading">Analyzing market conditions...</div>
-    </div>
-  </section>
+    <!-- 3. Market Positioning -->
+    <section id="positionSection" class="card position-card">
+      <span id="positionBadge" class="regime-badge">--</span>
+      <span id="positionText" class="position-text">Analyzing market conditions...</span>
+    </section>
 
-  <!-- Section 1: Live News Feed -->
-  <section id="eventSection" class="section">
-    <div class="section-header">
-      <span class="section-icon">&#x26A1;</span>
-      <span class="section-title">LIVE NEWS</span>
-      <div id="velocityMeter" class="velocity-meter hidden"></div>
-    </div>
-    <div id="eventContent" class="event-content">
-      <div class="event-loading">Scanning headlines...</div>
-    </div>
-  </section>
+    <!-- 4. Spread Heatmap (tiered) -->
+    <section id="spreadSection" class="section-block">
+      <h2 class="section-head"><svg class="h-icon" width="14" height="14"><use href="#icon-grid"/></svg>SPREAD HEATMAP</h2>
+      <div id="tier1Grid" class="spread-grid"></div>
+      <div id="tier2Grid" class="spread-grid"></div>
+      <div id="tier3Card" class="card spread-table"></div>
+    </section>
 
-  <!-- Section 1.5: Global Ripple Check -->
-  <section id="rippleSection" class="section">
-    <div class="section-header">
-      <span class="section-icon">&#x1F30D;</span>
-      <span class="section-title">GLOBAL RIPPLE CHECK</span>
-    </div>
-    <div id="rippleContent" class="ripple-content"></div>
-  </section>
+    <!-- 5. Confirmations -->
+    <section id="confirmSection" class="section-block">
+      <h2 class="section-head"><svg class="h-icon" width="14" height="14"><use href="#icon-check"/></svg>CONFIRMATIONS</h2>
+      <div id="confirmPills" class="pill-row"></div>
+      <div id="confirmSummary" class="muted-label summary-line">--</div>
+    </section>
 
-  <!-- Section 2: Contagion Chain -->
-  <section id="contagionSection" class="section hidden">
-    <div class="section-header">
-      <span class="section-icon">&#x1F517;</span>
-      <span class="section-title">CONTAGION PATH</span>
-    </div>
-    <div id="contagionContent" class="contagion-content"></div>
-  </section>
+    <!-- 6. Global Ripple Check -->
+    <section id="rippleSection" class="section-block">
+      <h2 class="section-head"><svg class="h-icon" width="14" height="14"><use href="#icon-globe"/></svg>GLOBAL RIPPLE CHECK</h2>
+      <div id="rippleCard" class="card ripple-card">No active global ripple detected.</div>
+    </section>
 
-  <!-- Section 3: Spread Heatmap -->
-  <section id="spreadSection" class="section">
-    <div class="section-header">
-      <span class="section-icon">&#x1F4CA;</span>
-      <span class="section-title">SPREAD HEATMAP</span>
-      <div id="confirmationDots" class="confirmation-dots"></div>
-    </div>
-    <div id="heatmapGrid" class="heatmap-grid"></div>
-    <div id="noData" class="no-data hidden">Waiting for first data fetch...</div>
-  </section>
+    <!-- 7. Reversion Countdown -->
+    <section id="reversionSection" class="section-block">
+      <h2 class="section-head"><svg class="h-icon" width="14" height="14"><use href="#icon-clock"/></svg>REVERSION COUNTDOWN</h2>
+      <div id="reversionCard" class="card"></div>
+    </section>
 
-  <!-- Section 4: Reversion Countdowns -->
-  <section id="reversionSection" class="section hidden">
-    <div class="section-header">
-      <span class="section-icon">&#x23F1;</span>
-      <span class="section-title">REVERSION COUNTDOWN</span>
-    </div>
-    <div id="reversionContent" class="reversion-content"></div>
-  </section>
+    <!-- 8. Historical Match -->
+    <section id="analogSection" class="section-block">
+      <h2 class="section-head"><svg class="h-icon" width="14" height="14"><use href="#icon-search"/></svg>HISTORICAL MATCH</h2>
+      <div id="analogCard" class="card analog-card"></div>
+    </section>
 
-  <!-- Section 5: FII Radar -->
-  <section id="fiiSection" class="section hidden">
-    <div class="section-header">
-      <span class="section-icon">&#x1F4B8;</span>
-      <span class="section-title">FII RADAR</span>
-    </div>
-    <div id="fiiContent" class="fii-content"></div>
-  </section>
+    <!-- 9. Event Timeline -->
+    <section id="timelineSection" class="section-block">
+      <h2 class="section-head"><svg class="h-icon" width="14" height="14"><use href="#icon-calendar"/></svg>EVENT TIMELINE</h2>
+      <div id="timelineCard" class="card timeline-card"></div>
+    </section>
 
-  <!-- Section 6: Historical Match -->
-  <section id="analogSection" class="section hidden">
-    <div class="section-header">
-      <span class="section-icon">&#x1F50D;</span>
-      <span class="section-title">HISTORICAL MATCH</span>
-    </div>
-    <div id="analogContent" class="analog-content"></div>
-  </section>
+    <!-- 10. Fade Statistics -->
+    <section id="statsSection" class="section-block">
+      <h2 class="section-head"><svg class="h-icon" width="14" height="14"><use href="#icon-chart"/></svg>FADE STATISTICS</h2>
+      <div id="statsCard" class="card"></div>
+    </section>
 
-  <!-- Section 7: Timeline -->
-  <section id="timelineSection" class="section hidden">
-    <div class="section-header">
-      <span class="section-icon">&#x1F4C5;</span>
-      <span class="section-title">EVENT TIMELINE</span>
-    </div>
-    <div id="timelineContent" class="timeline-content"></div>
-  </section>
+    <!-- 11. Live News -->
+    <section id="newsSection" class="section-block">
+      <h2 class="section-head">
+        <svg class="h-icon" width="14" height="14"><use href="#icon-bolt"/></svg>LIVE NEWS
+        <span id="velocityIndicator" class="velocity-indicator"></span>
+      </h2>
+      <div id="newsCard" class="card news-card"></div>
+    </section>
+  </main>
 
-  <!-- Section 8: Fade Stats -->
-  <section id="statsSection" class="section hidden">
-    <div class="section-header">
-      <span class="section-icon">&#x1F4B9;</span>
-      <span class="section-title">FADE STATISTICS</span>
-    </div>
-    <div id="statsContent" class="stats-content"></div>
-  </section>
-
-  <!-- Footer -->
+  <!-- 12. Footer -->
   <footer>
     <a href="#" id="settingsLink">Settings</a>
-    <span class="sep">|</span>
     <span class="version">v2.0.0</span>
-    <span class="sep">|</span>
     <span class="data-note">19 Spreads | VIX-Regime Z-Scores</span>
   </footer>
 
