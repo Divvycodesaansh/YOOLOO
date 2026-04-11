@@ -76,6 +76,7 @@ function renderAll(data) {
   renderTopBar(data);
   renderFearThermometer(data.lastFearTemp);
   renderRegimeBanner(data.lastRegime);
+  renderPositioningSummary(data);
   renderEvents(data.activeEvents, data.lastVelocity);
   renderRippleCheck(data.lastRippleCheck);
   renderContagionChain(data.activeEvents, data.lastSpreads);
@@ -147,6 +148,128 @@ function renderRegimeBanner(regime) {
   `;
 }
 
+// ─── Market Positioning Summary ──────────────────────────────────────────────
+
+function renderPositioningSummary(data) {
+  const content = document.getElementById('positionContent');
+  const fearTemp = data.lastFearTemp;
+  const regime = data.lastRegime;
+  const confirmation = data.lastConfirmation;
+  const fii = data.lastFIIStats;
+  const analog = data.lastAnalog;
+  const spreads = data.lastSpreads || {};
+
+  if (!fearTemp && !regime && !confirmation) {
+    content.innerHTML = `<div class="position-loading">Analyzing market conditions...</div>`;
+    return;
+  }
+
+  // Determine primary signal
+  let signal, signalClass, signalText, cardClass;
+  const fearScore = fearTemp?.score || 0;
+  const confScore = confirmation?.score || 0;
+  const confTotal = confirmation?.total || 6;
+  const regimeType = regime?.regime || 'NOISE';
+
+  if (regimeType === 'STRUCTURAL-SHIFT') {
+    signal = 'DEFENSIVE';
+    signalClass = 'defensive';
+    cardClass = 'bearish';
+    signalText = 'Stay defensive — structural shift detected';
+  } else if (regimeType === 'PANIC-REVERT' && confScore >= 4) {
+    signal = 'FADE THE DIP';
+    signalClass = 'fade';
+    cardClass = 'fade';
+    signalText = 'High-conviction fade setup — dislocation confirmed';
+  } else if (confScore >= 4) {
+    signal = 'FADE SETUP';
+    signalClass = 'fade';
+    cardClass = 'fade';
+    signalText = 'Multiple spreads confirming — fade candidate';
+  } else if (fearScore >= 60) {
+    signal = 'WATCH';
+    signalClass = 'neutral';
+    cardClass = 'neutral';
+    signalText = 'Elevated stress — wait for confirmation';
+  } else if (fearScore >= 40) {
+    signal = 'NEUTRAL';
+    signalClass = 'neutral';
+    cardClass = 'neutral';
+    signalText = 'Mild dislocation — no actionable edge';
+  } else {
+    signal = 'CALM';
+    signalClass = 'calm';
+    cardClass = 'neutral';
+    signalText = 'Market calm — no fade opportunity';
+  }
+
+  // Build reasoning sentence
+  const reasoning = buildReasoning(fearTemp, regime, confirmation, fii, spreads);
+
+  // Confirming/opposing factor chips
+  const factors = buildFactors(confirmation, fii, spreads);
+
+  // Historical analog suggestion
+  let analogHtml = '';
+  if (analog?.event) {
+    const verb = analog.fade_win_rate >= 70 ? 'faded successfully' : 'was volatile';
+    analogHtml = `
+      <div class="position-analog">
+        <span class="position-analog-label">CLOSEST HISTORICAL MATCH</span>
+        ${escapeHtml(analog.event)} (${analog.similarity}% match) — Nifty drew down ${analog.nifty_drawdown}%, recovered in ${analog.nifty_recovery_days} days, ${verb} ${analog.fade_win_rate}% of the time.
+      </div>`;
+  }
+
+  content.innerHTML = `
+    <div class="position-card ${cardClass}">
+      <div class="position-signal">
+        <span class="position-signal-badge ${signalClass}">${signal}</span>
+        <span class="position-signal-text">${signalText}</span>
+      </div>
+      <div class="position-reasoning">${reasoning}</div>
+      ${factors ? `<div class="position-factors">${factors}</div>` : ''}
+      ${analogHtml}
+    </div>
+  `;
+}
+
+function buildReasoning(fearTemp, regime, confirmation, fii, spreads) {
+  const parts = [];
+  if (fearTemp) {
+    parts.push(`Fear temp <b>${fearTemp.score}/100</b> (${fearTemp.label})`);
+  }
+  if (confirmation) {
+    parts.push(`<b>${confirmation.score}/${confirmation.total}</b> confirmations active`);
+  }
+  // Highlight top 2 most elevated spreads
+  const topSpreads = Object.entries(spreads)
+    .filter(([, s]) => (s.absZscore || 0) >= 1.5)
+    .sort((a, b) => (b[1].absZscore || 0) - (a[1].absZscore || 0))
+    .slice(0, 2);
+  if (topSpreads.length > 0) {
+    const names = topSpreads.map(([k, s]) => {
+      const cfg = SPREAD_CONFIG[k];
+      return `${cfg?.short || k} at <b>${s.absZscore.toFixed(1)}σ</b>`;
+    }).join(', ');
+    parts.push(names);
+  }
+  if (fii && fii.source !== 'INSUFFICIENT_DATA' && Math.abs(fii.zscore || 0) >= 1.5) {
+    const dir = fii.zscore < 0 ? 'selling' : 'buying';
+    parts.push(`FII ${dir} at <b>${Math.abs(fii.zscore).toFixed(1)}σ</b>`);
+  }
+  if (parts.length === 0) return 'No elevated spreads detected. Market in normal range.';
+  return parts.join(' · ') + '.';
+}
+
+function buildFactors(confirmation, fii, spreads) {
+  if (!confirmation || !confirmation.checks) return '';
+  return confirmation.checks.map(c => {
+    const cls = c.confirmed ? 'confirming' : 'neutral';
+    const mark = c.confirmed ? '✓' : '○';
+    return `<span class="position-factor ${cls}">${mark} ${escapeHtml(c.name)}</span>`;
+  }).join('');
+}
+
 // ─── Events + Velocity ───────────────────────────────────────────────────────
 
 function renderEvents(events, velocity) {
@@ -154,10 +277,7 @@ function renderEvents(events, velocity) {
   const content = document.getElementById('eventContent');
   const meter = document.getElementById('velocityMeter');
 
-  if ((!events || events.length === 0) && (!velocity || !velocity.alert)) {
-    section.classList.add('hidden');
-    return;
-  }
+  // Always keep section visible — show loading / empty state otherwise
   section.classList.remove('hidden');
 
   let html = '';
@@ -186,6 +306,8 @@ function renderEvents(events, velocity) {
         <span class="event-time">${timeAgo(event.timestamp)}</span>
       </div>`;
     }).join('');
+  } else if (!html) {
+    html = `<div class="event-loading">No market-moving headlines in the last hour.</div>`;
   }
 
   content.innerHTML = html;

@@ -10,7 +10,7 @@
   <!-- Top Bar with Fear Temperature -->
   <header id="topBar">
     <div class="title-row">
-      <h1>Dislocation Radar <span class="flag">IN</span></h1>
+      <h1>DISLOCATION RADAR <span class="flag">IN</span></h1>
       <div class="status-group">
         <span id="statusDot" class="status-dot"></span>
         <span id="statusLabel">Loading...</span>
@@ -23,6 +23,7 @@
     </div>
     <!-- Fear Temperature Thermometer -->
     <div id="fearTempBar" class="fear-temp-bar">
+      <span class="fear-temp-pre">FEAR</span>
       <div class="fear-temp-gauge">
         <div id="fearTempFill" class="fear-temp-fill" style="width:0%"></div>
         <span id="fearTempScore" class="fear-temp-score">--</span>
@@ -35,14 +36,27 @@
   <!-- Regime Banner -->
   <div id="regimeBanner" class="regime-banner hidden"></div>
 
-  <!-- Section 1: Active Event + Velocity -->
-  <section id="eventSection" class="section hidden">
+  <!-- POSITIONING SUMMARY — the actionable takeaway -->
+  <section id="positionSection" class="section position-section">
+    <div class="section-header">
+      <span class="section-icon">&#x1F3AF;</span>
+      <span class="section-title">MARKET POSITIONING</span>
+    </div>
+    <div id="positionContent" class="position-content">
+      <div class="position-loading">Analyzing market conditions...</div>
+    </div>
+  </section>
+
+  <!-- Section 1: Live News Feed -->
+  <section id="eventSection" class="section">
     <div class="section-header">
       <span class="section-icon">&#x26A1;</span>
-      <span class="section-title">ACTIVE EVENT</span>
+      <span class="section-title">LIVE NEWS</span>
       <div id="velocityMeter" class="velocity-meter hidden"></div>
     </div>
-    <div id="eventContent" class="event-content"></div>
+    <div id="eventContent" class="event-content">
+      <div class="event-loading">Scanning headlines...</div>
+    </div>
   </section>
 
   <!-- Section 1.5: Global Ripple Check -->
@@ -71,7 +85,7 @@
       <div id="confirmationDots" class="confirmation-dots"></div>
     </div>
     <div id="heatmapGrid" class="heatmap-grid"></div>
-    <div id="noData" class="no-data hidden">No spread data yet. Waiting for first fetch...</div>
+    <div id="noData" class="no-data hidden">Waiting for first data fetch...</div>
   </section>
 
   <!-- Section 4: Reversion Countdowns -->
