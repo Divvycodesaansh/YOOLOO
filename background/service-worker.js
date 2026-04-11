@@ -546,7 +546,9 @@ function calculateFearTemperature(spreadsWithZ, fiiStats) {
     mcx_crude_brent: 0.10
   };
 
-  let score = 0;
+  // v3.1: track per-key contribution to surface weight transparency in the popup
+  const contributions = {};
+  let rawScore = 0;
   for (const [key, weight] of Object.entries(weights)) {
     let z = 0;
     if (key === 'fii_net_flow') {
@@ -554,9 +556,26 @@ function calculateFearTemperature(spreadsWithZ, fiiStats) {
     } else {
       z = spreadsWithZ[key]?.absZscore || 0;
     }
-    score += weight * Math.min(z / 3, 1);
+    const normZ = Math.min(z / 3, 1);
+    const contrib = weight * normZ * 100; // on 0-100 scale
+    contributions[key] = {
+      weight,
+      z: parseFloat(z.toFixed(2)),
+      contribution: parseFloat(contrib.toFixed(1))
+    };
+    rawScore += weight * normZ;
   }
-  score = Math.round(score * 100);
+  const score = Math.round(rawScore * 100);
+
+  // Identify the top driver (highest raw contribution)
+  let topDriver = null;
+  let maxContrib = -1;
+  for (const [key, c] of Object.entries(contributions)) {
+    if (c.contribution > maxContrib) {
+      maxContrib = c.contribution;
+      topDriver = key;
+    }
+  }
 
   let label, color;
   if (score <= 25) { label = 'CALM'; color = '#3fb950'; }
@@ -564,7 +583,7 @@ function calculateFearTemperature(spreadsWithZ, fiiStats) {
   else if (score <= 75) { label = 'STRESSED'; color = '#db6d28'; }
   else { label = 'EXTREME PANIC'; color = '#da3633'; }
 
-  return { score, label, color, weights };
+  return { score, label, color, weights, contributions, topDriver };
 }
 
 async function findFearTempContext(score) {
@@ -685,8 +704,17 @@ async function fetchAndCalculate() {
     const fiiStats = await getFIIStats();
 
     // Fear Temperature (Upgrade 3)
+    // v3.1: read previous Fear Temp before overwriting so the popup can render a momentum arrow
+    const prevFearSnapshot = await chrome.storage.local.get('lastFearTemp');
     const fearTemp = calculateFearTemperature(spreadsWithZ, fiiStats);
     fearTemp.historicalContext = await findFearTempContext(fearTemp.score);
+    if (prevFearSnapshot?.lastFearTemp?.score !== undefined) {
+      fearTemp.previous = {
+        score: prevFearSnapshot.lastFearTemp.score,
+        ts: prevFearSnapshot.lastFearTemp.ts || null
+      };
+    }
+    fearTemp.ts = Date.now();
 
     // Regime Classification (Upgrade 4)
     const regime = await classifyRegime(spreadsWithZ, fiiStats);

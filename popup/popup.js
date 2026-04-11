@@ -27,11 +27,60 @@ const SPREAD_CONFIG = {
 
 const HIGH_RELEVANCE_REGEX = /\b(rbi|sebi|tariff|sanction|sanctions|earnings|fii|monetary\s*policy|rate\s*hike|rate\s*cut|repo\s*rate|fed|fomc|cpi|inflation|gdp)\b/i;
 
+// v3.1: semantic grouping for the spread heatmap — drives group badges
+// and the CLUSTERED/ISOLATED section pill.
+const SPREAD_GROUPS = {
+  india_us_10y_spread:      'CREDIT·RATES',
+  ois_repo_spread:          'CREDIT·RATES',
+  usdinr_basis:             'CREDIT·RATES',
+  infy_adr_spread:          'CROSS·LISTING',
+  icici_adr_spread:         'CROSS·LISTING',
+  nifty_it_nasdaq_ratio:    'CROSS·LISTING',
+  mcx_gold_comex:           'CROSS·LISTING',
+  mcx_silver_comex:         'CROSS·LISTING',
+  mcx_crude_brent:          'CROSS·LISTING',
+  banknifty_nifty_ratio:    'SECTORAL',
+  nifty_psu_pvt_bank_ratio: 'SECTORAL',
+  nifty_pharma_nifty_ratio: 'SECTORAL',
+  nifty500_nifty50_ratio:   'SECTORAL',
+  gold_silver_ratio:        'SECTORAL',
+  nifty_basis:              'SECTORAL',
+  banknifty_basis:          'SECTORAL',
+  india_vix:                'SENTIMENT·FLOW',
+  nifty_pcr:                'SENTIMENT·FLOW',
+  fii_net_flow:             'SENTIMENT·FLOW'
+};
+
+// v3.1: transmission chains — how a macro shock propagates. Keyed by
+// rippleCheck.type. Kept as a popup-side static map because the ripple
+// analyzer in background doesn't currently produce this.
+const TRANSMISSION_CHAINS = {
+  TRADE_WAR:       'tariff → supply chain → input costs → margins → equities',
+  GEOPOLITICAL:    'event → risk-off flows → USD/oil spike → FII outflow → Nifty',
+  OIL_SHOCK:       'oil → inflation → RBI hawkish → rate hike → banks & midcap drag',
+  CENTRAL_BANK:    'Fed/RBI surprise → USD → FX → EM outflow → Nifty',
+  EMERGING_MARKET: 'EM contagion → FX → FII outflow → Nifty',
+  CRISIS:          'stress → funding → vol spike → risk unwinds → equities',
+  DEFAULT:         'event → FX → equities → vol'
+};
+
+// v3.1: impact lag — how soon the shock typically shows in NSE prints.
+const IMPACT_LAG = {
+  TRADE_WAR:       '2–5 sessions',
+  GEOPOLITICAL:    '1–3 sessions',
+  OIL_SHOCK:       '1–2 sessions',
+  CENTRAL_BANK:    'same session',
+  EMERGING_MARKET: '1–3 sessions',
+  CRISIS:          'same session',
+  DEFAULT:         '1–3 sessions'
+};
+
 let state = {
   data: null,
   expandedSpreads: new Set(),
   analogViewRunnerUp: false,
-  newsExpanded: false
+  newsExpanded: false,
+  sessionSnapshot: null
 };
 
 async function init() {
@@ -108,8 +157,13 @@ async function handleRefresh() {
 
 function renderAll() {
   const d = state.data || {};
+  // v3.1 — capture snapshot of the first render as the session baseline for the changelog
+  if (!state.sessionSnapshot && d.lastFearTemp) {
+    state.sessionSnapshot = snapshotForChangelog(d);
+  }
   renderHeader(d);
   renderFearHero(d);
+  renderChangelog(d);
   renderPositioning(d);
   renderSpreadTiers(d);
   renderConfirmations(d);
@@ -119,6 +173,90 @@ function renderAll() {
   renderTimeline(d);
   renderFadeStats(d);
   renderNews(d);
+}
+
+// ─── 2a. Session Changelog (v3.1) ────────────────────────────────────────────
+
+function snapshotForChangelog(d) {
+  const snap = {
+    fearScore: d.lastFearTemp?.score ?? null,
+    confirmed: new Set(),
+    spreads: {}
+  };
+  const checks = d.lastConfirmation?.checks || [];
+  for (const c of checks) {
+    if (c.confirmed) snap.confirmed.add(c.name);
+  }
+  for (const [key, s] of Object.entries(d.lastSpreads || {})) {
+    if (SPREAD_CONFIG[key] && s && typeof s.absZscore === 'number') {
+      snap.spreads[key] = s.absZscore;
+    }
+  }
+  return snap;
+}
+
+function renderChangelog(d) {
+  const card = document.getElementById('changelogCard');
+  if (!card) return;
+  const snap = state.sessionSnapshot;
+  if (!snap || !d.lastFearTemp) {
+    card.innerHTML = `<div class="changelog-empty">Establishing session baseline…</div>`;
+    return;
+  }
+
+  const rows = [];
+
+  // Fear temp delta
+  const curScore = d.lastFearTemp?.score;
+  if (typeof curScore === 'number' && typeof snap.fearScore === 'number') {
+    const delta = curScore - snap.fearScore;
+    if (Math.abs(delta) >= 3) {
+      const arrow = delta > 0 ? '↑' : '↓';
+      const cls = delta > 0 ? 'up' : 'down';
+      rows.push(`<div class="changelog-row ${cls}">${arrow} Fear Temp: ${snap.fearScore} → ${curScore} (${delta > 0 ? '+' : ''}${delta})</div>`);
+    }
+  }
+
+  // Confirmation additions / removals
+  const curConfirmed = new Set();
+  for (const c of (d.lastConfirmation?.checks || [])) {
+    if (c.confirmed) curConfirmed.add(c.name);
+  }
+  for (const name of curConfirmed) {
+    if (!snap.confirmed.has(name)) {
+      rows.push(`<div class="changelog-row up">✓ Confirmation added: ${escapeHtml(name)}</div>`);
+    }
+  }
+  for (const name of snap.confirmed) {
+    if (!curConfirmed.has(name)) {
+      rows.push(`<div class="changelog-row down">✗ Confirmation cleared: ${escapeHtml(name)}</div>`);
+    }
+  }
+
+  // Spread sigma moves — only report meaningful moves (|Δ| ≥ 0.8σ)
+  const spreadDiffs = [];
+  for (const [key, s] of Object.entries(d.lastSpreads || {})) {
+    if (!SPREAD_CONFIG[key] || typeof s?.absZscore !== 'number') continue;
+    const prev = snap.spreads[key];
+    if (typeof prev !== 'number') continue;
+    const delta = s.absZscore - prev;
+    if (Math.abs(delta) >= 0.8) {
+      spreadDiffs.push({ key, prev, cur: s.absZscore, delta });
+    }
+  }
+  spreadDiffs.sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
+  for (const diff of spreadDiffs.slice(0, 5)) {
+    const cfg = SPREAD_CONFIG[diff.key];
+    const arrow = diff.delta > 0 ? '↑' : '↓';
+    const cls = diff.delta > 0 ? 'up' : 'down';
+    rows.push(`<div class="changelog-row ${cls}">${arrow} ${escapeHtml(cfg.short)}: ${diff.prev.toFixed(1)}σ → ${diff.cur.toFixed(1)}σ (${diff.delta > 0 ? '+' : ''}${diff.delta.toFixed(1)}σ)</div>`);
+  }
+
+  if (rows.length === 0) {
+    card.innerHTML = `<div class="changelog-empty">No material changes since session start.</div>`;
+  } else {
+    card.innerHTML = rows.join('');
+  }
 }
 
 // ─── 1. Header ───────────────────────────────────────────────────────────────
@@ -162,6 +300,8 @@ function renderFearHero(d) {
   const topSpreadsEl = document.getElementById('fearTopSpreads');
   const contextEl = document.getElementById('fearContext');
   const card = document.getElementById('fearSection');
+  const momentumEl = document.getElementById('fearMomentum');
+  const driverEl = document.getElementById('fearDriver');
 
   const score = fearTemp?.score;
   const regime = deriveRegime(score);
@@ -176,8 +316,32 @@ function renderFearHero(d) {
 
   card.classList.toggle('extreme', regime.key === 'extreme');
 
+  // v3.1 — directional momentum arrow from fearTemp.previous
+  if (momentumEl) {
+    const prev = fearTemp?.previous?.score;
+    if (score != null && typeof prev === 'number') {
+      const delta = score - prev;
+      if (Math.abs(delta) < 1) {
+        momentumEl.textContent = '→ 0';
+        momentumEl.className = 'momentum-arrow flat';
+      } else if (delta > 0) {
+        momentumEl.textContent = `▲ +${delta}`;
+        momentumEl.className = 'momentum-arrow rising';
+      } else {
+        momentumEl.textContent = `▼ ${delta}`;
+        momentumEl.className = 'momentum-arrow falling';
+      }
+    } else {
+      momentumEl.textContent = '';
+      momentumEl.className = 'momentum-arrow';
+    }
+  }
+
   if (confirmation) {
-    confirmLine.textContent = `Confirmations: ${confirmation.score} / ${confirmation.total} active`;
+    const weighted = confirmation.weightedScore != null && confirmation.maxWeighted != null
+      ? ` · weighted ${confirmation.weightedScore}/${confirmation.maxWeighted}`
+      : '';
+    confirmLine.textContent = `Confirmations: ${confirmation.score} / ${confirmation.total} active${weighted}`;
   } else {
     confirmLine.textContent = 'Confirmations: -- / -- active';
   }
@@ -195,18 +359,82 @@ function renderFearHero(d) {
     topSpreadsEl.textContent = '';
   }
 
+  // v3.1 — Fear Temp weight breakdown (top driver)
+  if (driverEl) {
+    const top = fearTemp?.topDriver;
+    const contrib = top ? fearTemp?.contributions?.[top] : null;
+    if (top && contrib && contrib.contribution > 0) {
+      const label = SPREAD_CONFIG[top]?.short || top.replace(/_/g, ' ');
+      driverEl.textContent = `Top driver: ${label} (${contrib.weight} × ${contrib.z}σ = +${contrib.contribution.toFixed(0)})`;
+      driverEl.style.display = '';
+    } else {
+      driverEl.textContent = '';
+      driverEl.style.display = 'none';
+    }
+  }
+
   contextEl.textContent = fearTemp?.historicalContext || '';
   contextEl.style.display = fearTemp?.historicalContext ? '' : 'none';
 }
 
 // ─── 3. Market Positioning ───────────────────────────────────────────────────
 
-const POSITIONING_TEXT = {
-  calm:    'Market calm — no fade opportunity',
-  caution: 'Elevated dislocations — monitor for confirmation',
-  fear:    'Fear rising — fade setups forming, check confirmations',
-  extreme: 'Extreme dislocation — high-probability fade if confirmed'
-};
+// v3.1: context-aware positioning — combines regime, weighted confirmation
+// strength, and the count of active reversion countdowns.
+function buildPositioningText(d) {
+  const score = d.lastFearTemp?.score;
+  const regime = deriveRegime(score);
+  const conf = d.lastConfirmation;
+  const reversions = d.lastReversionCountdowns || {};
+  const activeReversionCount = Object.keys(reversions).length;
+  const weightedScore = conf?.weightedScore ?? 0;
+  const maxWeighted = conf?.maxWeighted ?? 8.1;
+  const weightedRatio = maxWeighted > 0 ? weightedScore / maxWeighted : 0;
+
+  // Confirmation strength bucket
+  let confBucket;
+  if (weightedRatio >= 0.6) confBucket = 'strong';
+  else if (weightedRatio >= 0.35) confBucket = 'building';
+  else confBucket = 'thin';
+
+  if (score == null) return 'Analyzing market conditions...';
+
+  const reversionTail = activeReversionCount > 0
+    ? ` · ${activeReversionCount} spread${activeReversionCount > 1 ? 's' : ''} in reversion window`
+    : '';
+
+  if (regime.key === 'calm') {
+    return `Market calm (${score}/100) — no fade opportunity. Wait for a shock.`;
+  }
+  if (regime.key === 'caution') {
+    if (confBucket === 'strong') {
+      return `Caution (${score}/100) but confirmations strong — early fade entry viable${reversionTail}.`;
+    }
+    if (confBucket === 'building') {
+      return `Elevated (${score}/100), confirmations building — monitor top drivers${reversionTail}.`;
+    }
+    return `Elevated (${score}/100) on sentiment alone — wait for confirmations${reversionTail}.`;
+  }
+  if (regime.key === 'fear') {
+    if (confBucket === 'strong') {
+      return `Fear rising (${score}/100) with strong confirmations — high-conviction fade${reversionTail}.`;
+    }
+    if (confBucket === 'building') {
+      return `Fear rising (${score}/100) — confirmations building, stage fade entries${reversionTail}.`;
+    }
+    return `Fear rising (${score}/100) but confirmations thin — isolated vol, not a fade yet${reversionTail}.`;
+  }
+  if (regime.key === 'extreme') {
+    if (confBucket === 'strong') {
+      return `EXTREME (${score}/100) with strong confirmations — max-conviction fade${reversionTail}.`;
+    }
+    if (confBucket === 'building') {
+      return `EXTREME (${score}/100) — confirmations building, prepare fade tranches${reversionTail}.`;
+    }
+    return `EXTREME (${score}/100) but confirmations thin — possible isolated move, wait${reversionTail}.`;
+  }
+  return 'Analyzing market conditions...';
+}
 
 function renderPositioning(d) {
   const card = document.getElementById('positionSection');
@@ -218,7 +446,7 @@ function renderPositioning(d) {
 
   badge.textContent = regime.label;
   badge.className = `regime-badge ${regime.key || ''}`;
-  text.textContent = POSITIONING_TEXT[regime.key] || 'Analyzing market conditions...';
+  text.textContent = buildPositioningText(d);
   card.classList.toggle('extreme', regime.key === 'extreme');
 }
 
@@ -257,10 +485,34 @@ function renderSpreadTiers(d) {
   const t1 = document.getElementById('tier1Grid');
   const t2 = document.getElementById('tier2Grid');
   const t3 = document.getElementById('tier3Card');
+  const clusterPill = document.getElementById('clusterPill');
 
   t1.innerHTML = tier1.map(e => spreadCardHtml(e, 'critical', history[e.key])).join('');
   t2.innerHTML = tier2.map(e => spreadCardHtml(e, 'elevated', history[e.key])).join('');
   t3.innerHTML = tier3.map(e => spreadRowHtml(e)).join('');
+
+  // v3.1 — CLUSTERED/ISOLATED pill: count tier1+tier2 spreads per semantic group;
+  // if any group has ≥3, the dislocation is clustered (structural), else isolated.
+  if (clusterPill) {
+    const topTier = [...tier1, ...tier2];
+    const groupCounts = {};
+    for (const { key } of topTier) {
+      const g = SPREAD_GROUPS[key];
+      if (!g) continue;
+      groupCounts[g] = (groupCounts[g] || 0) + 1;
+    }
+    const maxGroup = Object.entries(groupCounts).sort((a, b) => b[1] - a[1])[0];
+    if (topTier.length === 0) {
+      clusterPill.textContent = '';
+      clusterPill.className = 'cluster-pill';
+    } else if (maxGroup && maxGroup[1] >= 3) {
+      clusterPill.textContent = `${maxGroup[1]} clustered · ${maxGroup[0]}`;
+      clusterPill.className = 'cluster-pill clustered';
+    } else {
+      clusterPill.textContent = 'isolated';
+      clusterPill.className = 'cluster-pill isolated';
+    }
+  }
 
   // Click-to-expand for tier 1 / tier 2 cards
   [t1, t2].forEach(container => {
@@ -296,6 +548,11 @@ function spreadCardHtml({ key, spread }, tierClass, hist) {
     expandHtml = `<div class="spread-expand">${renderSparkline(hist || [], tierClass)}</div>`;
   }
 
+  const group = SPREAD_GROUPS[key];
+  const groupBadge = group
+    ? `<span class="group-badge">${escapeHtml(group)}</span>`
+    : '';
+
   return `
     <div class="spread-card ${tierClass}" data-key="${escapeHtml(key)}" title="${escapeHtml(title)}">
       <div class="spread-card-head">
@@ -303,7 +560,10 @@ function spreadCardHtml({ key, spread }, tierClass, hist) {
         <span class="quality-badge ${quality}">${escapeHtml(qLabel)}</span>
       </div>
       <div class="spread-card-value">${value}</div>
-      <div class="spread-card-sigma">${z.toFixed(1)}σ</div>
+      <div class="spread-card-foot">
+        <span class="spread-card-sigma">${z.toFixed(1)}σ</span>
+        ${groupBadge}
+      </div>
       ${expandHtml}
     </div>`;
 }
@@ -334,10 +594,30 @@ function renderConfirmations(d) {
     return;
   }
   pillsEl.innerHTML = confirmation.checks
-    .map(c => `<span class="confirm-pill ${c.confirmed ? 'active' : ''}">${escapeHtml(c.name)}</span>`)
+    .map(c => {
+      // v3.1 — near-miss: inactive pills whose progress toward threshold ≥ 0.85
+      const isNearMiss = !c.confirmed && typeof c.progressPct === 'number' && c.progressPct >= 0.85;
+      const classes = [
+        'confirm-pill',
+        c.confirmed ? 'active' : '',
+        isNearMiss ? 'near-miss' : ''
+      ].filter(Boolean).join(' ');
+      const tip = c.triggerRule || c.name;
+      const subLabel = (typeof c.currentValue === 'number' && typeof c.threshold === 'number')
+        ? `<span class="confirm-pill-sub">${c.currentValue.toFixed(1)} / ${c.threshold.toFixed(1)}σ</span>`
+        : '';
+      return `<span class="${classes}" title="${escapeHtml(tip)}">
+        <span class="confirm-pill-name">${escapeHtml(c.name)}</span>
+        ${subLabel}
+      </span>`;
+    })
     .join('');
+
   const met = confirmation.score >= 3;
-  summaryEl.textContent = `${confirmation.score} of ${confirmation.total} active — ${met ? 'confirmation threshold met' : 'insufficient for high-confidence fade'}`;
+  const weighted = confirmation.weightedScore != null && confirmation.maxWeighted != null
+    ? ` · weighted ${confirmation.weightedScore}/${confirmation.maxWeighted}`
+    : '';
+  summaryEl.textContent = `${confirmation.score} of ${confirmation.total} active${weighted} — ${met ? 'confirmation threshold met' : 'insufficient for high-confidence fade'}`;
 }
 
 // ─── 6. Global Ripple Check ──────────────────────────────────────────────────
@@ -365,13 +645,20 @@ function renderRipple(d) {
     .map(c => `<span class="sector-chip rank-${degreeToRank[c.degree] || 3}">${escapeHtml(c.sector)}</span>`)
     .join('');
 
+  // v3.1 — transmission chain + impact lag, keyed by ripple type
+  const typeKey = (r.type || '').toUpperCase();
+  const chain = TRANSMISSION_CHAINS[typeKey] || TRANSMISSION_CHAINS.DEFAULT;
+  const lag = IMPACT_LAG[typeKey] || IMPACT_LAG.DEFAULT;
+
   card.className = 'card ripple-card';
   card.innerHTML = `
     <div class="ripple-head">
       <span class="regime-badge ${sevKey}">${escapeHtml(r.severity || '')}</span>
       <span class="ripple-category">${escapeHtml(category)}</span>
+      <span class="lag-chip">Lag: ${escapeHtml(lag)}</span>
     </div>
     <div class="ripple-headline">${escapeHtml(truncate(r.event || '', 120))}</div>
+    <div class="transmission-line">Transmission: ${escapeHtml(chain)}</div>
     ${sectorsHtml ? `<div class="ripple-sectors">${sectorsHtml}</div>` : ''}
     ${r.watch ? `<div class="ripple-watch">WATCH: ${escapeHtml(r.watch)}</div>` : ''}
     ${r.daily_life_impact ? `<div class="ripple-context">${escapeHtml(r.daily_life_impact)}</div>` : ''}
@@ -380,9 +667,34 @@ function renderRipple(d) {
 
 // ─── 7. Reversion Countdown ──────────────────────────────────────────────────
 
+// v3.1 — reversion velocity: compare current z-score against the sample roughly
+// 3h ago in spreadHistory. Positive velocity = widening (bad), negative = reverting.
+function computeReversionVelocity(history, currentZ) {
+  if (!Array.isArray(history) || history.length < 2 || typeof currentZ !== 'number') {
+    return null;
+  }
+  const now = Date.now();
+  const targetAgo = now - 3 * 60 * 60 * 1000;
+  // Walk backwards and find the first sample at or before target time.
+  let ref = null;
+  for (let i = history.length - 1; i >= 0; i--) {
+    const h = history[i];
+    if ((h?.ts || 0) <= targetAgo) { ref = h; break; }
+  }
+  if (!ref || typeof ref.zscore !== 'number') {
+    // Fall back to oldest available sample so we still show a direction.
+    ref = history[0];
+  }
+  if (!ref || typeof ref.zscore !== 'number') return null;
+  const delta = Math.abs(currentZ) - Math.abs(ref.zscore);
+  return parseFloat(delta.toFixed(2));
+}
+
 function renderReversion(d) {
   const card = document.getElementById('reversionCard');
   const countdowns = d.lastReversionCountdowns || {};
+  const spreads = d.lastSpreads || {};
+  const history = d.spreadHistory || {};
   const entries = Object.entries(countdowns);
 
   if (entries.length === 0) {
@@ -402,10 +714,25 @@ function renderReversion(d) {
       ? `Day ${daysPassed} of avg window: N/A`
       : `Day ${daysPassed} of avg ${avgLabel}-day window`;
 
+    // v3.1 velocity arrow
+    const currentZ = spreads[key]?.absZscore || 0;
+    const velocity = computeReversionVelocity(history[key], currentZ);
+    let velocityHtml = '';
+    if (velocity != null) {
+      if (velocity < -0.1) {
+        velocityHtml = `<span class="velocity-arrow reverting" title="z-score reverting (${velocity.toFixed(2)}σ over ~3h)">▼ ${Math.abs(velocity).toFixed(1)}σ</span>`;
+      } else if (velocity > 0.1) {
+        velocityHtml = `<span class="velocity-arrow widening" title="z-score widening (+${velocity.toFixed(2)}σ over ~3h)">▲ ${velocity.toFixed(1)}σ</span>`;
+      } else {
+        velocityHtml = `<span class="velocity-arrow flat" title="z-score flat over ~3h">→</span>`;
+      }
+    }
+
     return `
       <div class="reversion-row">
         <div class="reversion-row-top">
           <span class="reversion-name">${escapeHtml(name)}</span>
+          ${velocityHtml}
           <span class="reversion-active-badge ${overdue ? 'overdue' : ''}">${overdue ? 'OVERDUE' : 'ACTIVE'}</span>
         </div>
         <div class="reversion-bar-track"><div class="reversion-bar-fill ${overdue ? 'overdue' : ''}" style="width:${pct}%"></div></div>
@@ -449,7 +776,19 @@ function renderAnalog(d) {
         : `<div class="analog-runner">Runner-up: ${escapeHtml(runner.event)} (${runner.similarity}% match)</div>`)
     : '';
 
+  // v3.1 — weak-match threshold: similarity stored as 0-100 in the analog
+  // object. Values below 35 are flagged as directional-only.
+  const simNum = typeof display.similarity === 'number'
+    ? display.similarity
+    : parseFloat(display.similarity) || 0;
+  const isWeakMatch = simNum < 35;
+  card.classList.toggle('weak-match', isWeakMatch);
+  const weakBanner = isWeakMatch
+    ? `<div class="weak-match-banner">Weak match (${simNum}%) — treat as directional only, not a statistical fade setup.</div>`
+    : '';
+
   card.innerHTML = `
+    ${weakBanner}
     <div class="analog-top">
       <span class="analog-name">${escapeHtml(display.event || '')}</span>
       <span class="analog-match-pill">${display.similarity || 0}% match</span>
@@ -522,12 +861,33 @@ async function renderTimeline(d) {
 
   const nowPct = ((now.getFullYear() + (now.getMonth() / 12) - minYear) / range * 100).toFixed(1);
 
+  // v3.1 — frequency annotation: count events of matching severity type vs decade span
+  const score = d.lastFearTemp?.score;
+  const regime = deriveRegime(score);
+  const regimeTypes = regime.key === 'extreme' ? ['CRISIS', 'GEO']
+                    : regime.key === 'fear'    ? ['CRISIS', 'GEO', 'MAC']
+                    : regime.key === 'caution' ? ['MAC', 'POLICY']
+                    : [];
+  let frequencyLine = '';
+  if (regimeTypes.length > 0) {
+    const matching = events.filter(e => regimeTypes.includes((e.type || '').toUpperCase())).length;
+    const decades = Math.max(1, Math.round(range / 10));
+    const perDecade = matching / decades;
+    if (matching > 0) {
+      const display = perDecade >= 1
+        ? `~${Math.round(perDecade)}× per decade`
+        : `~1× every ${Math.round(1 / perDecade)} decades`;
+      frequencyLine = `<div class="timeline-freq">${regime.label} regime historically occurs ${display}</div>`;
+    }
+  }
+
   card.innerHTML = `
     <div class="timeline-bar">
       ${dotsHtml}
       <div class="tl-now" style="left:${nowPct}%"></div>
     </div>
     <div class="tl-labels"><span>1991</span><span>2000</span><span>2010</span><span>2020</span><span>NOW</span></div>
+    ${frequencyLine}
   `;
 }
 

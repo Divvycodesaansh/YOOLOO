@@ -69,13 +69,21 @@
       <div class="fear-number-row">
         <span id="fearNumber" class="fear-number">--</span>
         <span class="fear-denom">/ 100</span>
+        <span id="fearMomentum" class="momentum-arrow"></span>
       </div>
       <div class="fear-bar-track"><div id="fearBarFill" class="fear-bar-fill"></div></div>
       <div class="fear-footer">
         <span id="fearConfirmLine" class="muted-label">Confirmations: -- / -- active</span>
         <span id="fearTopSpreads" class="hint-label">--</span>
       </div>
+      <div id="fearDriver" class="weight-driver"></div>
       <div id="fearContext" class="hint-italic">--</div>
+    </section>
+
+    <!-- 2a. Session Changelog (v3.1) -->
+    <section id="changelogSection" class="section-block">
+      <h2 class="section-head"><svg class="h-icon" width="14" height="14"><use href="#icon-bolt"/></svg>SESSION CHANGES</h2>
+      <div id="changelogCard" class="card changelog-card"></div>
     </section>
 
     <!-- 3. Market Positioning -->
@@ -86,7 +94,7 @@
 
     <!-- 4. Spread Heatmap (tiered) -->
     <section id="spreadSection" class="section-block">
-      <h2 class="section-head"><svg class="h-icon" width="14" height="14"><use href="#icon-grid"/></svg>SPREAD HEATMAP</h2>
+      <h2 class="section-head"><svg class="h-icon" width="14" height="14"><use href="#icon-grid"/></svg>SPREAD HEATMAP<span id="clusterPill" class="cluster-pill"></span></h2>
       <div id="tier1Grid" class="spread-grid"></div>
       <div id="tier2Grid" class="spread-grid"></div>
       <div id="tier3Card" class="card spread-table"></div>

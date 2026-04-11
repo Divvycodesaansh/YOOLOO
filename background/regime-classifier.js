@@ -105,22 +105,71 @@ export async function classifyRegime(currentSpreads, fiiStats) {
 
 // ─── Cross-Market Confirmation (Upgrade 7) ──────────────────────────────────
 
+// v3.1: each check now carries threshold context so the popup can render
+// weighted scoring, near-miss indicators, and trigger-rule tooltips.
+const CONFIRMATION_WEIGHTS = {
+  'VIX Spike': 1.5,
+  'Gold Premium': 1.2,
+  'Crude Premium': 1.0,
+  'USDINR Wide': 1.2,
+  'FII Selling': 1.2,
+  'ADR Discount': 1.0
+};
+
 export function calculateConfirmation(currentSpreads, fiiStats) {
+  const vixZ = currentSpreads?.india_vix?.absZscore || 0;
+  const goldZ = currentSpreads?.mcx_gold_comex?.absZscore || 0;
+  const crudeZ = currentSpreads?.mcx_crude_brent?.absZscore || 0;
+  const usdinrZ = currentSpreads?.usdinr_basis?.absZscore || 0;
+  const fiiZ = fiiStats?.zscore || 0;
+  const infyZ = currentSpreads?.infy_adr_spread?.absZscore || 0;
+  const iciciZ = currentSpreads?.icici_adr_spread?.absZscore || 0;
+  const adrMaxZ = Math.max(infyZ, iciciZ);
+
+  const mk = (name, currentValue, threshold, confirmed, triggerRule, unit = 'σ') => {
+    // progress is abs(value)/threshold, capped at 1 for the display (pills above 1.0 = confirmed)
+    const progressPct = threshold !== 0
+      ? Math.min(Math.abs(currentValue) / Math.abs(threshold), 1.5)
+      : 0;
+    return {
+      name,
+      confirmed,
+      currentValue: parseFloat(currentValue.toFixed(2)),
+      threshold,
+      progressPct: parseFloat(progressPct.toFixed(2)),
+      triggerRule,
+      unit
+    };
+  };
+
   const checks = [
-    { name: 'VIX Spike', confirmed: (currentSpreads?.india_vix?.absZscore || 0) >= 1.5 },
-    { name: 'Gold Premium', confirmed: (currentSpreads?.mcx_gold_comex?.absZscore || 0) >= 1.5 },
-    { name: 'Crude Premium', confirmed: (currentSpreads?.mcx_crude_brent?.absZscore || 0) >= 1.5 },
-    { name: 'USDINR Wide', confirmed: (currentSpreads?.usdinr_basis?.absZscore || 0) >= 1.5 },
-    { name: 'FII Selling', confirmed: (fiiStats?.zscore || 0) < -1.5 },
-    { name: 'ADR Discount', confirmed: ((currentSpreads?.infy_adr_spread?.absZscore || 0) >= 1.5) || ((currentSpreads?.icici_adr_spread?.absZscore || 0) >= 1.5) }
+    mk('VIX Spike', vixZ, 1.5, vixZ >= 1.5, 'India VIX |z| ≥ 1.5σ'),
+    mk('Gold Premium', goldZ, 1.5, goldZ >= 1.5, 'MCX gold vs COMEX |z| ≥ 1.5σ'),
+    mk('Crude Premium', crudeZ, 1.5, crudeZ >= 1.5, 'MCX crude vs Brent |z| ≥ 1.5σ'),
+    mk('USDINR Wide', usdinrZ, 1.5, usdinrZ >= 1.5, 'USDINR basis |z| ≥ 1.5σ'),
+    mk('FII Selling', fiiZ, -1.5, fiiZ < -1.5, 'FII net flow z-score ≤ -1.5σ'),
+    mk('ADR Discount', adrMaxZ, 1.5, adrMaxZ >= 1.5, 'max(INFY, ICICI) ADR spread |z| ≥ 1.5σ')
   ];
 
   const confirmedCount = checks.filter(c => c.confirmed).length;
   const total = checks.length;
 
+  // Weighted score: sum of weights of confirmed checks
+  let weightedScore = 0;
+  let maxWeighted = 0;
+  for (const c of checks) {
+    const w = CONFIRMATION_WEIGHTS[c.name] || 1.0;
+    maxWeighted += w;
+    if (c.confirmed) weightedScore += w;
+  }
+  weightedScore = parseFloat(weightedScore.toFixed(1));
+  maxWeighted = parseFloat(maxWeighted.toFixed(1));
+
   return {
     score: confirmedCount,
     total,
+    weightedScore,
+    maxWeighted,
     checks,
     signal: confirmedCount >= 4 ? 'FADE' : confirmedCount >= 2 ? 'WATCH' : 'NONE',
     label: confirmedCount >= 4 ? 'FADE SETUP' : confirmedCount >= 2 ? 'WATCH' : null,
