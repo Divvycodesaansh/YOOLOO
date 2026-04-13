@@ -1,0 +1,57 @@
+{
+  "manifest_version": 3,
+  "name": "Dislocation Radar India",
+  "version": "1.0.0",
+  "description": "Real-time Indian market spread dislocation monitor with historical analog matching for geopolitical and macro events",
+  "permissions": [
+    "alarms",
+    "storage",
+    "notifications",
+    "offscreen"
+  ],
+  "host_permissions": [
+    "https://query1.finance.yahoo.com/*",
+    "https://query2.finance.yahoo.com/*",
+    "https://open.er-api.com/*",
+    "https://news.google.com/*",
+    "https://www.nseindia.com/*"
+  ],
+  "background": {
+    "service_worker": "background/service-worker.js",
+    "type": "module"
+  },
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    },
+    "default_title": "Dislocation Radar India"
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://kite.zerodha.com/*",
+        "https://*.tradingview.com/*",
+        "https://www.moneycontrol.com/*",
+        "https://moneycontrol.com/*"
+      ],
+      "js": ["content/widget.js"],
+      "css": ["content/widget.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "options_page": "options/options.html",
+  "web_accessible_resources": [
+    {
+      "resources": ["data/*.json", "icons/*.png"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}

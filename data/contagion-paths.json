@@ -1,0 +1,188 @@
+{
+  "version": "1.0.0",
+  "paths": {
+    "gulf_oil_attack": {
+      "trigger": "Gulf/Middle East oil supply disruption",
+      "event_types": ["GEO", "SUPPLY"],
+      "chain": [
+        { "step": "Crude spike", "spread_key": "mcx_crude_brent", "icon": "oil" },
+        { "step": "INR weakens", "spread_key": "usdinr_basis", "icon": "currency" },
+        { "step": "RBI intervenes", "spread_key": "ois_repo_spread", "icon": "bank" },
+        { "step": "Liquidity tightens", "spread_key": "banknifty_basis", "icon": "squeeze" },
+        { "step": "Bank NPA fears", "spread_key": "banknifty_nifty_ratio", "icon": "warning" },
+        { "step": "BankNifty underperforms", "spread_key": "banknifty_basis", "icon": "down" }
+      ]
+    },
+    "india_pakistan_conflict": {
+      "trigger": "India-Pakistan military escalation",
+      "event_types": ["GEO"],
+      "chain": [
+        { "step": "VIX spikes", "spread_key": "india_vix", "icon": "fear" },
+        { "step": "Gold safe-haven bid", "spread_key": "mcx_gold_comex", "icon": "gold" },
+        { "step": "FII panic exit", "spread_key": "fii_net_flow", "icon": "outflow" },
+        { "step": "Nifty futures discount", "spread_key": "nifty_basis", "icon": "down" },
+        { "step": "ADR discount widens", "spread_key": "infy_adr_spread", "icon": "gap" },
+        { "step": "Rupee weakens", "spread_key": "usdinr_basis", "icon": "currency" }
+      ]
+    },
+    "fed_surprise_hike": {
+      "trigger": "Fed surprise rate decision / hawkish pivot",
+      "event_types": ["MAC"],
+      "chain": [
+        { "step": "US yields spike", "spread_key": "india_us_10y_spread", "icon": "yield" },
+        { "step": "Dollar strengthens", "spread_key": "usdinr_basis", "icon": "currency" },
+        { "step": "FII outflows", "spread_key": "fii_net_flow", "icon": "outflow" },
+        { "step": "IT sector hit", "spread_key": "nifty_it_nasdaq_ratio", "icon": "tech" },
+        { "step": "ADR repricing", "spread_key": "infy_adr_spread", "icon": "gap" },
+        { "step": "Nifty basis widens", "spread_key": "nifty_basis", "icon": "down" }
+      ]
+    },
+    "rbi_surprise": {
+      "trigger": "RBI surprise rate action",
+      "event_types": ["MAC"],
+      "chain": [
+        { "step": "OIS spread jumps", "spread_key": "ois_repo_spread", "icon": "bank" },
+        { "step": "Bond yields move", "spread_key": "india_us_10y_spread", "icon": "yield" },
+        { "step": "BankNifty reacts", "spread_key": "banknifty_basis", "icon": "bank" },
+        { "step": "PSU vs Pvt banks diverge", "spread_key": "nifty_psu_pvt_bank_ratio", "icon": "split" },
+        { "step": "USDINR adjusts", "spread_key": "usdinr_basis", "icon": "currency" }
+      ]
+    },
+    "banking_crisis": {
+      "trigger": "Banking/NBFC crisis (IL&FS, Yes Bank type)",
+      "event_types": ["CRISIS"],
+      "chain": [
+        { "step": "Bank stocks crash", "spread_key": "banknifty_nifty_ratio", "icon": "down" },
+        { "step": "PSU banks sold off", "spread_key": "nifty_psu_pvt_bank_ratio", "icon": "bank" },
+        { "step": "VIX spikes", "spread_key": "india_vix", "icon": "fear" },
+        { "step": "Put buying surges", "spread_key": "nifty_pcr", "icon": "puts" },
+        { "step": "FII flee", "spread_key": "fii_net_flow", "icon": "outflow" },
+        { "step": "Breadth collapses", "spread_key": "nifty500_nifty50_ratio", "icon": "breadth" }
+      ]
+    },
+    "global_pandemic": {
+      "trigger": "Pandemic / global health emergency",
+      "event_types": ["CRISIS"],
+      "chain": [
+        { "step": "VIX extreme spike", "spread_key": "india_vix", "icon": "fear" },
+        { "step": "Gold/silver fear gauge", "spread_key": "gold_silver_ratio", "icon": "gold" },
+        { "step": "Pharma outperforms", "spread_key": "nifty_pharma_nifty_ratio", "icon": "pharma" },
+        { "step": "Broad market crash", "spread_key": "nifty_basis", "icon": "down" },
+        { "step": "BankNifty extreme", "spread_key": "banknifty_basis", "icon": "bank" },
+        { "step": "FII mass exit", "spread_key": "fii_net_flow", "icon": "outflow" }
+      ]
+    },
+    "trade_war_tariffs": {
+      "trigger": "US-China or global tariff escalation",
+      "event_types": ["MAC"],
+      "chain": [
+        { "step": "IT/NASDAQ ratio shifts", "spread_key": "nifty_it_nasdaq_ratio", "icon": "tech" },
+        { "step": "USDINR widens", "spread_key": "usdinr_basis", "icon": "currency" },
+        { "step": "ADR spreads move", "spread_key": "infy_adr_spread", "icon": "gap" },
+        { "step": "Gold safe-haven", "spread_key": "mcx_gold_comex", "icon": "gold" },
+        { "step": "FII reduce exposure", "spread_key": "fii_net_flow", "icon": "outflow" }
+      ]
+    },
+    "currency_crisis": {
+      "trigger": "Emerging market / currency crisis",
+      "event_types": ["CRISIS", "MAC"],
+      "chain": [
+        { "step": "Dollar surges", "spread_key": "usdinr_basis", "icon": "currency" },
+        { "step": "Bond yield spread widens", "spread_key": "india_us_10y_spread", "icon": "yield" },
+        { "step": "Gold premium spikes", "spread_key": "mcx_gold_comex", "icon": "gold" },
+        { "step": "FII outflows accelerate", "spread_key": "fii_net_flow", "icon": "outflow" },
+        { "step": "RBI action priced in", "spread_key": "ois_repo_spread", "icon": "bank" },
+        { "step": "VIX elevated", "spread_key": "india_vix", "icon": "fear" }
+      ]
+    },
+    "commodity_shock": {
+      "trigger": "Commodity price shock (oil, metals)",
+      "event_types": ["SUPPLY"],
+      "chain": [
+        { "step": "MCX crude premium", "spread_key": "mcx_crude_brent", "icon": "oil" },
+        { "step": "Gold-silver ratio spikes", "spread_key": "gold_silver_ratio", "icon": "gold" },
+        { "step": "Silver underperforms", "spread_key": "mcx_silver_comex", "icon": "silver" },
+        { "step": "INR weakens on import bill", "spread_key": "usdinr_basis", "icon": "currency" },
+        { "step": "Inflation fears", "spread_key": "ois_repo_spread", "icon": "bank" }
+      ]
+    },
+    "fii_exodus": {
+      "trigger": "Sustained FII selling / EM rotation",
+      "event_types": ["MAC"],
+      "chain": [
+        { "step": "FII net selling", "spread_key": "fii_net_flow", "icon": "outflow" },
+        { "step": "ADR discounts widen", "spread_key": "infy_adr_spread", "icon": "gap" },
+        { "step": "USDINR pressure", "spread_key": "usdinr_basis", "icon": "currency" },
+        { "step": "Market breadth narrows", "spread_key": "nifty500_nifty50_ratio", "icon": "breadth" },
+        { "step": "PSU banks relatively held", "spread_key": "nifty_psu_pvt_bank_ratio", "icon": "bank" },
+        { "step": "VIX rises", "spread_key": "india_vix", "icon": "fear" }
+      ]
+    },
+    "demonetisation_policy": {
+      "trigger": "Sudden policy shock (demonetisation, tax reform)",
+      "event_types": ["MAC"],
+      "chain": [
+        { "step": "Gold premium extreme", "spread_key": "mcx_gold_comex", "icon": "gold" },
+        { "step": "BankNifty crashes", "spread_key": "banknifty_basis", "icon": "bank" },
+        { "step": "PSU vs Pvt diverge", "spread_key": "nifty_psu_pvt_bank_ratio", "icon": "split" },
+        { "step": "Cash crunch hits breadth", "spread_key": "nifty500_nifty50_ratio", "icon": "breadth" },
+        { "step": "Pharma defensive bid", "spread_key": "nifty_pharma_nifty_ratio", "icon": "pharma" }
+      ]
+    },
+    "global_financial_crisis": {
+      "trigger": "Systemic financial crisis (2008-type)",
+      "event_types": ["CRISIS"],
+      "chain": [
+        { "step": "VIX extreme", "spread_key": "india_vix", "icon": "fear" },
+        { "step": "All spreads blow out", "spread_key": "nifty_basis", "icon": "down" },
+        { "step": "Gold-silver ratio extreme", "spread_key": "gold_silver_ratio", "icon": "gold" },
+        { "step": "FII mass liquidation", "spread_key": "fii_net_flow", "icon": "outflow" },
+        { "step": "USDINR collapses", "spread_key": "usdinr_basis", "icon": "currency" },
+        { "step": "Bond yield spread widens", "spread_key": "india_us_10y_spread", "icon": "yield" },
+        { "step": "Every sector hit", "spread_key": "banknifty_nifty_ratio", "icon": "warning" }
+      ]
+    }
+  },
+  "keyword_to_path": {
+    "oil": "gulf_oil_attack",
+    "crude": "gulf_oil_attack",
+    "OPEC": "commodity_shock",
+    "refinery": "gulf_oil_attack",
+    "tanker": "gulf_oil_attack",
+    "pipeline": "gulf_oil_attack",
+    "India Pakistan": "india_pakistan_conflict",
+    "surgical strike": "india_pakistan_conflict",
+    "LoC": "india_pakistan_conflict",
+    "airstrike India": "india_pakistan_conflict",
+    "Operation Sindoor": "india_pakistan_conflict",
+    "Fed rate": "fed_surprise_hike",
+    "FOMC": "fed_surprise_hike",
+    "taper": "fed_surprise_hike",
+    "RBI rate": "rbi_surprise",
+    "RBI repo": "rbi_surprise",
+    "RBI surprise": "rbi_surprise",
+    "bank crisis": "banking_crisis",
+    "NBFC": "banking_crisis",
+    "moratorium": "banking_crisis",
+    "default India": "banking_crisis",
+    "pandemic": "global_pandemic",
+    "WHO emergency": "global_pandemic",
+    "lockdown": "global_pandemic",
+    "COVID": "global_pandemic",
+    "tariff": "trade_war_tariffs",
+    "trade war": "trade_war_tariffs",
+    "sanctions": "trade_war_tariffs",
+    "currency collapse": "currency_crisis",
+    "yen crash": "currency_crisis",
+    "dollar surge": "currency_crisis",
+    "emerging market selloff": "currency_crisis",
+    "demonetisation": "demonetisation_policy",
+    "demonetization": "demonetisation_policy",
+    "FII selling": "fii_exodus",
+    "FII outflow": "fii_exodus",
+    "financial crisis": "global_financial_crisis",
+    "Lehman": "global_financial_crisis",
+    "SVB": "banking_crisis",
+    "credit crunch": "global_financial_crisis"
+  }
+}
